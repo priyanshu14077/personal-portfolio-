@@ -2744,7 +2744,7 @@ I'd love to hear more about ` +
                     type: "button",
                     className: "tpp-tag",
                     onClick: () => Z(2),
-                    children: "See the work",
+                    children: "View my work",
                   }),
                   t.jsx("button", {
                     type: "button",
@@ -2752,7 +2752,7 @@ I'd love to hear more about ` +
                     "data-ghost": "",
                     style: { color: "#f3eee4" },
                     onClick: () => Z(4),
-                    children: "Write to me",
+                    children: "Get in touch",
                   }),
                 ],
               }),
@@ -2801,7 +2801,7 @@ I'd love to hear more about ` +
                   fontSize: 9,
                   opacity: 0.6,
                 },
-                children: "from the studio",
+                children: "selected work",
               }),
             ],
           }),
@@ -3597,7 +3597,7 @@ I'd love to hear more about ` +
                   t.jsx("p", {
                     className: "tpp-label",
                     style: { color: k.accent },
-                    children: "Sheet 07 · scale 1 : 50 000",
+                    children: "Career map · 2022 – present",
                   }),
                   t.jsx("h2", {
                     className: "tpp-h tpp-sec-h mt-2",
@@ -3907,7 +3907,7 @@ I'd love to hear more about ` +
                               placeholder:
                                 "Dear " +
                                 r.split(" ")[0] +
-                                ", I have a project in mind…",
+                                ", I'd like to talk about a role on our team…",
                             }),
                           }),
                         ],
@@ -3988,7 +3988,7 @@ I'd love to hear more about ` +
                                 type: "email",
                                 value: St,
                                 onChange: (i) => Le(i.target.value),
-                                placeholder: "you@studio.com",
+                                placeholder: "you@company.com",
                                 autoComplete: "email",
                               }),
                             ],
@@ -4032,7 +4032,7 @@ I'd love to hear more about ` +
                 style: { color: "#e8e4da", fontSize: 16, minHeight: "1.2em" },
                 "aria-live": "polite",
                 children: zt
-                  ? "Your mail app should be opening — thank you!"
+                  ? "Opening your mail app. Thanks for reaching out!"
                   : "",
               }),
             ],
