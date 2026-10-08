@@ -7,8 +7,8 @@ export const resume = {
   role: "Forward deployed engineer · AI agents in production",
   location: "New Delhi, India",
   since: "2025",
-  headline: ["The field journal,", "in five chapters."],
-  intro: "Who I am, what I've deployed, where I've worked, and how to reach me. Keep scrolling and each page tears open.",
+  headline: ["I learn your business,", "then ship its AI."],
+  intro: "Forward deployed engineer. I embed with the team that has the problem, turn their workflow into a spec, and take the AI solution all the way to production.",
   note: "3 field deployments, measured in production",
   about: {
     title: "About me",

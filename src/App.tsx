@@ -12,8 +12,8 @@ import { resume } from "@/data/resume"
 export default function App() {
   return (
     <main className="w-full overflow-x-clip">
-      <WheelHero />
       <TornPostcardPortfolio {...resume} />
+      <WheelHero />
       <ImpactStrip />
       <TechMarquee />
       <DeploymentPlaybook />
