@@ -1,6 +1,7 @@
 import { GithubSkyline } from "@/components/github-skyline"
 import { DeploymentPlaybook } from "@/components/portfolio/deployment-playbook"
 import { FieldDeployments } from "@/components/portfolio/field-deployments"
+import { FdeHero } from "@/components/portfolio/hero/fde-hero"
 import { ImpactStrip } from "@/components/portfolio/impact-strip"
 import { SiteFooter } from "@/components/portfolio/site-footer"
 import { TechMarquee } from "@/components/portfolio/tech-marquee"
@@ -11,6 +12,7 @@ import { resume } from "@/data/resume"
 export default function App() {
   return (
     <main className="w-full overflow-x-clip">
+      <FdeHero />
       <TornPostcardPortfolio {...resume} />
       <ImpactStrip />
       <TechMarquee />
