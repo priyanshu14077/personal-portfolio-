@@ -1,8 +1,8 @@
 # Priyanshu Kumar Singh — Portfolio
 
-Personal portfolio for Priyanshu Kumar Singh, a distributed systems and full-stack engineer building AI/LLM platforms.
+Personal portfolio for Priyanshu Kumar Singh, a forward deployed engineer who embeds with teams and ships AI agents and production backends.
 
-The site is a scroll-driven story in five chapters (Home, About, Work, Experience, Contact), each tearing open like paper to reveal the next, followed by a 3D skyline of a year of GitHub contributions.
+The site is a scroll-driven story in five chapters (Home, About, Work, Experience, Contact), each tearing open like paper to reveal the next, followed by impact metrics, the forward deployed playbook, field deployment case studies, a toolbelt, and a 3D skyline of a year of GitHub contributions.
 
 ## Stack
 
@@ -20,7 +20,7 @@ npm run build      # production build in dist/
 
 ## Content
 
-- All portfolio copy lives in `src/data/resume.ts`.
+- Scroll-chapter copy lives in `src/data/resume.ts`; the sections below it read from `src/data/field.ts`.
 - GitHub contribution data lives in `src/data/contributions.json`. Refresh it with `npm run contributions` (requires the GitHub CLI, logged in).
 
 ## Deployment
