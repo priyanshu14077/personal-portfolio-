@@ -17,14 +17,14 @@ export function GithubSkyline() {
     >
       <div className="mx-auto w-full max-w-[980px]">
         <p className="mb-3 text-[11px] font-medium tracking-[0.3em] text-[#a9c1d6] uppercase">
-          GitHub activity
+          Off the clock · GitHub
         </p>
         <h2
           id="commits-title"
           className="mb-10 text-4xl leading-tight sm:text-5xl"
           style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}
         >
-          A year of shipping, commit by commit
+          Between deployments, I keep building
         </h2>
         <ContributionSkyline
           data={contributions.days}
