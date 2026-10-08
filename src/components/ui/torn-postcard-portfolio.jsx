@@ -412,6 +412,8 @@ const pt = (r, e, a) => Math.min(a, Math.max(e, r)),
 .tpp-pin-dot{width:12px;height:12px;border-radius:99px;background:var(--tpp-paper);border:2px solid var(--tpp-ink);transition:background .3s,transform .3s}
 .tpp-pin[aria-pressed=true] .tpp-pin-dot{background:var(--tpp-accent);border-color:var(--tpp-accent);transform:scale(1.3)}
 .tpp-pin-y{font-family:var(--tpp-serif);font-size:15px;font-weight:600;letter-spacing:.06em}
+.tpp-pin-org{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;background:var(--tpp-paper);padding:2px 6px;border-radius:3px}
+.tpp-pin[aria-pressed=true] .tpp-pin-org{background:var(--tpp-accent);color:#f7f3ea}
 .tpp-walker{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:99px;border:1.5px dashed var(--tpp-accent);transition:left .9s cubic-bezier(.4,.1,.2,1),top .9s cubic-bezier(.4,.1,.2,1);pointer-events:none;animation:tpp-spin 6s linear infinite}
 @keyframes tpp-spin{to{rotate:360deg}}
 .tpp-progress{transition:stroke-dashoffset .9s cubic-bezier(.4,.1,.2,1)}
@@ -3597,7 +3599,7 @@ I'd love to hear more about ` +
                   t.jsx("p", {
                     className: "tpp-label",
                     style: { color: k.accent },
-                    children: "Career map · 2022 – present",
+                    children: "Career map · 2025 – present",
                   }),
                   t.jsx("h2", {
                     className: "tpp-h tpp-sec-h mt-2",
@@ -3670,12 +3672,17 @@ I'd love to hear more about ` +
                       type: "button",
                       className: "tpp-pin",
                       "aria-pressed": l === gt,
-                      "aria-label": i.year + " — " + i.title,
+                      "aria-label": (i.org ? i.org + ", " : "") + i.title + ", " + i.year,
                       onClick: () => dt(l),
                       onMouseEnter: () => dt(l),
                       onFocus: () => dt(l),
                       style: { left: 0, top: 0 },
                       children: [
+                        i.org &&
+                          t.jsx("span", {
+                            className: "tpp-pin-org",
+                            children: i.org,
+                          }),
                         t.jsx("span", {
                           className: "tpp-pin-y",
                           children: i.year,
@@ -3711,8 +3718,14 @@ I'd love to hear more about ` +
                         fontWeight: 600,
                         lineHeight: 1.15,
                       },
-                      children: it.title,
+                      children: it.org || it.title,
                     }),
+                    it.org &&
+                      t.jsx("p", {
+                        className: "mt-0.5 text-[13px] font-semibold",
+                        style: { opacity: 0.8 },
+                        children: it.title,
+                      }),
                     it.text &&
                       t.jsx("p", {
                         className: "mt-2 text-[13px] leading-relaxed",

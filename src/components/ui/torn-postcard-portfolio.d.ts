@@ -17,7 +17,11 @@ export interface PostcardProject {
 }
 
 export interface PostcardStop {
+  /** Shown on the map pin and as the card heading. */
+  org?: string
+  /** Date label on the pin, e.g. "Oct 2025". */
   year: string
+  /** Role, shown under `org` on the card. */
   title: string
   place: string
   text: string
