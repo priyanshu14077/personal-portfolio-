@@ -10,7 +10,7 @@ export function SiteFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <p className="font-hand text-2xl text-accent">Have a problem that needs to be in production?</p>
-          <h2 className="mt-2 font-display text-5xl leading-[1.02] font-medium text-ink sm:text-6xl">
+          <h2 className="mt-2 font-display text-5xl leading-[1.1] font-normal text-ink sm:text-6xl">
             Put me in the room with it.
           </h2>
           <p className="mt-4 text-[15px] text-ink/75">

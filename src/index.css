@@ -15,7 +15,7 @@
   --color-tape: #a9c1d6;
   --color-muted: #1d2c49;
   --color-muted-foreground: rgba(242, 237, 226, 0.55);
-  --font-display: "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  --font-display: "Newsreader", "Cormorant Garamond", Georgia, serif;
   --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-hand: "Caveat", "Bradley Hand", cursive;
 }
@@ -113,5 +113,5 @@ body {
 
 /* The template ships its own serif stack; point it at the site's display face. */
 .tpp-root.tpp-root {
-  --tpp-serif: "Instrument Serif", "Cormorant Garamond", Georgia, serif;
+  --tpp-serif: "Newsreader", "Cormorant Garamond", Georgia, serif;
 }

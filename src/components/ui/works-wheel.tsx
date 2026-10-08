@@ -150,7 +150,7 @@ function DetailPanel({
           {item.kicker}
         </p>
       ) : null}
-      <h3 className="font-display mt-1 pr-6 text-2xl leading-tight">
+      <h3 className="font-display mt-1 pr-6 text-2xl leading-snug">
         {item.title}
       </h3>
       {item.summary ? (
@@ -504,7 +504,7 @@ export function WorksWheel({
           proportions inside a card as well as at full bleed. */}
       <div
         ref={labelRef}
-        className="font-display pointer-events-none absolute inset-0 grid place-items-center text-center tracking-tight"
+        className="font-display pointer-events-none absolute inset-0 grid place-items-center text-center leading-[1.15]"
         style={{ fontSize: metrics.title }}
       >
         {label}
@@ -512,7 +512,7 @@ export function WorksWheel({
       <div
         ref={titleRef}
         className={cn(
-          "font-display pointer-events-none absolute top-1/2 left-[5%] max-w-[26%] -translate-y-1/2 leading-[1.02] tracking-tight opacity-0",
+          "font-display pointer-events-none absolute top-1/2 left-[5%] max-w-[26%] -translate-y-1/2 leading-[1.12] opacity-0",
           narrow && "hidden",
         )}
         style={{ fontSize: metrics.title }}

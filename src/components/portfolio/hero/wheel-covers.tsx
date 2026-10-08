@@ -15,7 +15,7 @@ export function StageCover({ stage }: { stage: Stage }) {
         </span>
         <div>
           <p className="text-[9.5px] font-semibold tracking-[0.24em] text-tape uppercase">{stage.verb}</p>
-          <p className="font-display text-[22px] leading-none text-paper">{stage.title}</p>
+          <p className="font-display text-[21px] leading-tight text-paper">{stage.title}</p>
         </div>
       </div>
       <div className="mt-4 min-h-0 flex-1 overflow-hidden">
@@ -36,13 +36,13 @@ export function DeploymentCover({ item, index }: { item: Deployment; index: numb
         <p className="text-[10px] text-ink/55">{item.period}</p>
       </div>
       <div>
-        <p className="font-display text-[clamp(2rem,4.2vw,3.4rem)] leading-[0.95]">{item.client}</p>
+        <p className="font-display text-[clamp(1.8rem,3.6vw,3rem)] leading-[1.08]">{item.client}</p>
         <p className="mt-1 text-[12px] text-ink/65">{item.role}</p>
       </div>
       <div className="grid grid-cols-3 gap-2">
         {item.outcome.map((o) => (
           <div key={o.label} className="rounded-sm bg-deep px-2.5 py-2 text-paper">
-            <p className="font-display text-[22px] leading-none">{o.value}</p>
+            <p className="font-display text-[20px] leading-tight">{o.value}</p>
             <p className="mt-1 text-[10px] leading-tight text-paper/70">{o.label}</p>
           </div>
         ))}
@@ -63,7 +63,7 @@ export function PrototypeCover({ item }: { item: Prototype }) {
       } as React.CSSProperties}
     >
       <p className="font-mono text-[11px] text-tape">› {item.kicker.toLowerCase()}</p>
-      <p className="font-display text-[clamp(2rem,4.2vw,3.4rem)] leading-[0.95] text-paper">{item.name}</p>
+      <p className="font-display text-[clamp(1.8rem,3.6vw,3rem)] leading-[1.08] text-paper">{item.name}</p>
       <p className="max-w-[90%] text-[12.5px] leading-snug text-paper/70">{item.summary}</p>
       <ul className="flex flex-wrap gap-1.5">
         {item.tags.map((t) => (

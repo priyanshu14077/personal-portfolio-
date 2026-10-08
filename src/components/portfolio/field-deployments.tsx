@@ -17,7 +17,7 @@ function Tape({ className }: { className?: string }) {
 function OutcomeBadge({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-sm bg-deep px-3 py-2 text-paper">
-      <p className="font-display text-2xl leading-none font-semibold">{value}</p>
+      <p className="font-display text-2xl leading-tight font-medium">{value}</p>
       <p className="mt-1 text-[11px] leading-tight text-paper/70">{label}</p>
     </div>
   )

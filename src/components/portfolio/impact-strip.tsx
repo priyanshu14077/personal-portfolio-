@@ -15,7 +15,7 @@ function ImpactStub({ item, index }: { item: Impact; index: number }) {
           aria-hidden="true"
           className="absolute inset-x-3 bottom-12 border-t border-dashed border-ink/25"
         />
-        <p className="font-display text-4xl leading-none font-semibold text-ink sm:text-5xl">{item.value}</p>
+        <p className="font-display text-4xl leading-tight font-medium text-ink sm:text-5xl">{item.value}</p>
         <p className="mt-2 text-sm font-medium text-ink/80">{item.label}</p>
         <p className="mt-6 text-[11px] tracking-[0.14em] text-ink/55 uppercase">{item.context}</p>
       </div>

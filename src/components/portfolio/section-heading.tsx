@@ -29,7 +29,7 @@ export function SectionHeading({
       </p>
       <h2
         className={cn(
-          "font-display text-4xl leading-[1.05] font-medium sm:text-5xl",
+          "font-display text-4xl leading-[1.12] font-normal sm:text-5xl",
           dark ? "text-paper" : "text-ink",
         )}
       >

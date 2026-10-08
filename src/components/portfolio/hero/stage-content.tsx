@@ -97,7 +97,7 @@ function ShipStage() {
       </ul>
       <Pop i={deployLog.length}>
         <div className="relative -rotate-2 rounded-sm border-2 border-accent px-3 py-2 text-center">
-          <p className="flex items-center justify-center gap-2 font-display text-2xl leading-none font-semibold text-paper">
+          <p className="flex items-center justify-center gap-2 font-display text-2xl leading-tight font-medium text-paper">
             {outcome.from} <ArrowRight className="size-4 text-accent" aria-hidden="true" /> {outcome.to}
           </p>
           <p className="mt-1 text-[10px] font-semibold tracking-[0.18em] text-accent uppercase">
