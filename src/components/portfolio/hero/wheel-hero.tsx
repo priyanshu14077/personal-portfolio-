@@ -34,18 +34,24 @@ const items: WorksWheelItem[] = [
 export function WheelHero() {
   return (
     <section
-      aria-label="Introduction"
-      className="relative flex h-svh min-h-[560px] w-full flex-col overflow-hidden bg-[radial-gradient(110%_80%_at_50%_45%,#24375a_0%,#14213a_55%,#0c1528_100%)]"
+      id="field-work"
+      aria-labelledby="field-work-title"
+      className="relative flex h-svh min-h-[560px] w-full flex-col overflow-hidden bg-[linear-gradient(180deg,#24375a_0%,#1a2a47_38%,#14213a_70%,#0c1528_100%)]"
     >
+      {/* Faint ruled lines, like the page of a field notebook. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(180deg,transparent_0,transparent_39px,rgba(242,237,226,0.035)_39px,rgba(242,237,226,0.035)_40px)]"
+      />
       {/* On phones the intro sits above the wheel; from md up it floats over the corner. */}
       <div className="pointer-events-none relative z-[160] max-w-[min(100vw,330px)] px-5 pt-6 pb-2 md:absolute md:top-0 md:left-0 md:p-8">
-        <p className="text-[11px] font-semibold tracking-[0.28em] text-tape uppercase">{resume.name}</p>
-        <h1 className="mt-3 font-display text-[clamp(1.7rem,3vw,2.6rem)] leading-[1.02] text-paper">
-          I learn how your business runs, <em className="text-accent">then ship the AI that speeds it up.</em>
-        </h1>
+        <p className="text-[11px] font-semibold tracking-[0.28em] text-tape uppercase">Field work</p>
+        <h2 id="field-work-title" className="mt-3 font-display text-[clamp(1.7rem,2.8vw,2.4rem)] leading-[1.12] text-paper">
+          From a business problem <em className="text-accent">to AI in production.</em>
+        </h2>
         <p className="mt-3 hidden text-[13.5px] leading-relaxed text-paper/65 md:block">
-          Forward deployed engineer. Turn the wheel: four steps of how I work, three client deployments, three
-          prototypes.
+          Turn the wheel: the four steps of how I work, three client deployments and three prototypes. Hover or
+          click any card for the story.
         </p>
         <div className="pointer-events-auto mt-4 hidden gap-2 md:flex">
           <a
@@ -63,7 +69,8 @@ export function WheelHero() {
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      {/* Bottom margin keeps the controls clear of the next section's torn edge. */}
+      <div className="relative mb-9 min-h-0 flex-1">
         <WorksWheel
           items={items}
           label="Forward deployed"
@@ -74,7 +81,7 @@ export function WheelHero() {
       </div>
 
       <p className="pointer-events-none absolute right-8 bottom-6 z-[160] hidden text-right font-hand text-xl text-tape md:block">
-        scroll or drag to turn · hover or click a card for the story
+        scroll or drag to turn the wheel
       </p>
     </section>
   )
