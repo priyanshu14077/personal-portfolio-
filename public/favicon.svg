@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="2" y="2" width="60" height="60" rx="10" fill="#14213a"/>
+  <rect x="7" y="7" width="50" height="50" rx="6" fill="none" stroke="#b4673d" stroke-width="2" stroke-dasharray="4 3"/>
+  <path d="M12 46 L22 34 L28 40 L36 28 L52 46 Z" fill="#24375a"/>
+  <text x="32" y="33" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="22" font-weight="700" fill="#f2ede2">PK</text>
+  <rect x="20" y="40" width="24" height="3" rx="1.5" fill="#b4673d"/>
+</svg>
