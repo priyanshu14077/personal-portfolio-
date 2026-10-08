@@ -1,54 +1,33 @@
-# React + TypeScript + Vite
+# Priyanshu Kumar Singh — Portfolio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Personal portfolio for Priyanshu Kumar Singh, a distributed systems and full-stack engineer building AI/LLM platforms.
 
-Currently, two official plugins are available:
+The site is a scroll-driven story in five chapters (Home, About, Work, Experience, Contact), each tearing open like paper to reveal the next, followed by a 3D skyline of a year of GitHub contributions.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stack
 
-## Expanding the ESLint configuration
+- Vite, React 19, TypeScript
+- Tailwind CSS v4, shadcn project structure (`@/components/ui`)
+- Deployed on Vercel from `master`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Develop
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production build in dist/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Content
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- All portfolio copy lives in `src/data/resume.ts`.
+- GitHub contribution data lives in `src/data/contributions.json`. Refresh it with `npm run contributions` (requires the GitHub CLI, logged in).
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## Deployment
+
+`vercel.json` limits automatic deployments to the `master` branch; pushes to other branches do not deploy. Merge to `master` to release.
+
+## Credits
+
+- Scroll-tear layout: [Torn Postcard Portfolio](https://21st.dev/@kedhareswer/templates/scroll-tear-portfolio-website-template) by Kedhareswer Naidu on 21st.dev.
+- Contribution skyline component from 21st.dev.
