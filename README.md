@@ -2,7 +2,7 @@
 
 Personal portfolio for Priyanshu Kumar Singh, a forward deployed engineer who embeds with teams and ships AI agents and production backends.
 
-The site is a scroll-driven story in five chapters (Home, About, Work, Experience, Contact), each tearing open like paper to reveal the next, followed by a "How I work" wheel (four steps and four capabilities, client-agnostic), impact metrics, case studies, the stack, and a 3D skyline of a year of GitHub contributions.
+The site is a scroll-driven story in five chapters (Home, About, Work, Experience, Contact), each tearing open like paper to reveal the next, followed by a "How I work" wheel (four steps and four capabilities, client-agnostic), a WebGL projects slider with screenshots of the live sites, impact metrics, case studies, the stack, and a 3D skyline of a year of GitHub contributions.
 
 ## Stack
 
