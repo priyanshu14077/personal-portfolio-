@@ -3753,102 +3753,7 @@ I'd love to hear more about ` +
         }),
       }),
     }),
-    Je = t.jsxs("div", {
-      className: "tpp-fill",
-      "aria-hidden": "true",
-      style: {
-        background:
-          "linear-gradient(180deg, #0c1528 0%, var(--tpp-deep) 45%, var(--tpp-navy) 100%)",
-      },
-      children: [
-        t.jsxs("svg", {
-          className: "tpp-svg tpp-fill",
-          viewBox: "0 0 1600 1000",
-          preserveAspectRatio: "xMidYMid slice",
-          children: [
-            t.jsxs("defs", {
-              children: [
-                t.jsxs("radialGradient", {
-                  id: v + "-moon",
-                  children: [
-                    t.jsx("stop", {
-                      offset: "0",
-                      stopColor: "#fdf6e3",
-                      stopOpacity: ".55",
-                    }),
-                    t.jsx("stop", {
-                      offset: "1",
-                      stopColor: "#fdf6e3",
-                      stopOpacity: "0",
-                    }),
-                  ],
-                }),
-                t.jsxs("linearGradient", {
-                  id: v + "-au",
-                  x1: "0",
-                  y1: "0",
-                  x2: "0",
-                  y2: "1",
-                  children: [
-                    t.jsx("stop", {
-                      offset: "0",
-                      stopColor: "#6ee7c0",
-                      stopOpacity: "0",
-                    }),
-                    t.jsx("stop", {
-                      offset: ".55",
-                      stopColor: "#6ee7c0",
-                      stopOpacity: ".32",
-                    }),
-                    t.jsx("stop", {
-                      offset: "1",
-                      stopColor: "#6ee7c0",
-                      stopOpacity: "0",
-                    }),
-                  ],
-                }),
-              ],
-            }),
-            t.jsx(js, {}),
-            t.jsx("g", {
-              className: "tpp-aurora",
-              children: t.jsx("path", {
-                d: "M-100 300 C200 120 420 340 700 200 C950 80 1150 260 1400 140 C1550 70 1650 120 1700 100 L1700 330 C1500 360 1300 260 1100 360 C850 470 650 300 420 400 C200 490 60 380 -100 460 Z",
-                fill: "url(#" + v + "-au)",
-              }),
-            }),
-            t.jsx("circle", {
-              cx: "1280",
-              cy: "170",
-              r: "120",
-              fill: "url(#" + v + "-moon)",
-            }),
-            t.jsx("circle", {
-              cx: "1280",
-              cy: "170",
-              r: "34",
-              fill: "#f6efdc",
-            }),
-            t.jsx("circle", { cx: "1268", cy: "162", r: "6", fill: "#e3d9bf" }),
-            t.jsx("circle", { cx: "1292", cy: "180", r: "4", fill: "#e3d9bf" }),
-            t.jsx("g", {
-              children: t.jsx("path", {
-                d: at(st(808, -120, 1720, 720, 260, 0.55, 7), 1e3),
-                fill: "#1b2944",
-              }),
-            }),
-            t.jsx("g", {
-              children: t.jsx("path", {
-                d: rt(919, -40, 1640, 1010, 150, 320, 40),
-                fill: "#0b1324",
-              }),
-            }),
-          ],
-        }),
-        t.jsx(P, { uid: v, light: !0, opacity: 0.18 }),
-        U && t.jsx(Ht, { seed: 23, count: 22 }),
-      ],
-    }),
+    Je = t.jsx(NightScene, { uid: v, snow: U }),
     $e = t.jsx(xt, {
       index: 4,
       seam: 1,
@@ -4218,3 +4123,164 @@ function js() {
 }
 export { ys as TornPostcardPortfolio }
 export default ys
+
+// --- Local additions: the template's scenery, usable outside the five chapters. ---
+
+/** The contact chapter's moonlit night: sky gradient, stars, moon and ridges. */
+function NightScene({ uid: v, snow: U = !0 }) {
+  return t.jsxs("div", {
+      className: "tpp-fill",
+      "aria-hidden": "true",
+      style: {
+        background:
+          "linear-gradient(180deg, #0c1528 0%, var(--tpp-deep) 45%, var(--tpp-navy) 100%)",
+      },
+      children: [
+        t.jsxs("svg", {
+          className: "tpp-svg tpp-fill",
+          viewBox: "0 0 1600 1000",
+          preserveAspectRatio: "xMidYMid slice",
+          children: [
+            t.jsxs("defs", {
+              children: [
+                t.jsxs("radialGradient", {
+                  id: v + "-moon",
+                  children: [
+                    t.jsx("stop", {
+                      offset: "0",
+                      stopColor: "#fdf6e3",
+                      stopOpacity: ".55",
+                    }),
+                    t.jsx("stop", {
+                      offset: "1",
+                      stopColor: "#fdf6e3",
+                      stopOpacity: "0",
+                    }),
+                  ],
+                }),
+                t.jsxs("linearGradient", {
+                  id: v + "-au",
+                  x1: "0",
+                  y1: "0",
+                  x2: "0",
+                  y2: "1",
+                  children: [
+                    t.jsx("stop", {
+                      offset: "0",
+                      stopColor: "#6ee7c0",
+                      stopOpacity: "0",
+                    }),
+                    t.jsx("stop", {
+                      offset: ".55",
+                      stopColor: "#6ee7c0",
+                      stopOpacity: ".32",
+                    }),
+                    t.jsx("stop", {
+                      offset: "1",
+                      stopColor: "#6ee7c0",
+                      stopOpacity: "0",
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            t.jsx(js, {}),
+            t.jsx("g", {
+              className: "tpp-aurora",
+              children: t.jsx("path", {
+                d: "M-100 300 C200 120 420 340 700 200 C950 80 1150 260 1400 140 C1550 70 1650 120 1700 100 L1700 330 C1500 360 1300 260 1100 360 C850 470 650 300 420 400 C200 490 60 380 -100 460 Z",
+                fill: "url(#" + v + "-au)",
+              }),
+            }),
+            t.jsx("circle", {
+              cx: "1280",
+              cy: "170",
+              r: "120",
+              fill: "url(#" + v + "-moon)",
+            }),
+            t.jsx("circle", {
+              cx: "1280",
+              cy: "170",
+              r: "34",
+              fill: "#f6efdc",
+            }),
+            t.jsx("circle", { cx: "1268", cy: "162", r: "6", fill: "#e3d9bf" }),
+            t.jsx("circle", { cx: "1292", cy: "180", r: "4", fill: "#e3d9bf" }),
+            t.jsx("g", {
+              children: t.jsx("path", {
+                d: at(st(808, -120, 1720, 720, 260, 0.55, 7), 1e3),
+                fill: "#1b2944",
+              }),
+            }),
+            t.jsx("g", {
+              children: t.jsx("path", {
+                d: rt(919, -40, 1640, 1010, 150, 320, 40),
+                fill: "#0b1324",
+              }),
+            }),
+          ],
+        }),
+        t.jsx(P, { uid: v, light: !0, opacity: 0.18 }),
+        U && t.jsx(Ht, { seed: 23, count: 22 }),
+      ],
+    })
+}
+
+const SCENE_VARS = {
+  "--tpp-navy": "#24375a",
+  "--tpp-deep": "#14213a",
+  "--tpp-fog": "#d5d0c3",
+  "--tpp-paper": "#f2ede2",
+  "--tpp-ink": "#26364f",
+  "--tpp-accent": "#b4673d",
+}
+
+/**
+ * One of the template's illustrated backgrounds, as a standalone layer.
+ * `kind`: "night" (moon and stars), "peaks" (mountain ranges), "pines"
+ * (snowy forest at night), "sky" (the cover's dusk ranges) or "map" (route paper).
+ * Fills its positioned parent. Borrows the grain texture the template generates.
+ */
+export function PostcardScene({ kind, snow = !1, className = "", style }) {
+  const uid = "ps" + kt(g.useId())
+  const ref = g.useRef(null)
+  g.useEffect(() => {
+    const el = ref.current
+    const root = document.querySelector(".tpp-root")
+    if (!el || !root) return
+    const copy = () => {
+      const cs = getComputedStyle(root)
+      for (const name of ["--tpp-gd", "--tpp-gl"]) {
+        const val = cs.getPropertyValue(name)
+        if (val) el.style.setProperty(name, val)
+      }
+    }
+    copy()
+    const id = window.setTimeout(copy, 400)
+    return () => window.clearTimeout(id)
+  }, [])
+  const scene =
+    kind === "night"
+      ? t.jsx(NightScene, { uid, snow })
+      : kind === "peaks"
+        ? t.jsx(me, { uid, seed: 2 })
+        : kind === "pines"
+          ? t.jsx(vt, { uid, seed: 3, flakes: snow })
+          : kind === "sky"
+            ? t.jsxs("div", {
+                className: "tpp-fill",
+                children: [t.jsx(ds, { uid }), t.jsx(P, { uid, light: !0, opacity: 0.18 })],
+              })
+            : t.jsxs("div", {
+                className: "tpp-fill",
+                style: { background: "var(--tpp-paper)" },
+                children: [t.jsx(gs, {}), t.jsx(P, { uid, opacity: 0.45 })],
+              })
+  return t.jsx("div", {
+    ref,
+    "aria-hidden": "true",
+    className: "pointer-events-none absolute inset-0 overflow-hidden " + className,
+    style: { ...SCENE_VARS, ...style },
+    children: scene,
+  })
+}

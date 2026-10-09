@@ -13,15 +13,13 @@ export function GithubSkyline() {
     <section
       id="commits"
       aria-labelledby="commits-title"
-      className="w-full bg-[#14213a] px-4 py-20 text-[#f2ede2] sm:px-8"
+      className="w-full bg-[#14213a] px-5 py-32 text-[#f2ede2] sm:px-10"
     >
       <div className="mx-auto w-full max-w-[980px]">
-        <p className="mb-3 text-[11px] font-medium tracking-[0.3em] text-[#a9c1d6] uppercase">
-          Off the clock · GitHub
-        </p>
+        <p className="text-[15px] font-medium text-[#a9c1d6]">Off the clock</p>
         <h2
           id="commits-title"
-          className="mb-10 text-4xl leading-tight sm:text-5xl"
+          className="mt-3 mb-14 text-[clamp(2.25rem,4vw,3.25rem)] leading-[1.15] font-normal"
           style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}
         >
           Between deployments, I keep building

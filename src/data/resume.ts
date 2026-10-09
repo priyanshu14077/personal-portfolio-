@@ -7,8 +7,8 @@ export const resume = {
   role: "Forward deployed engineer · AI agents in production",
   location: "New Delhi, India",
   since: "2025",
-  headline: ["I embed with your team", "and ship AI to production."],
-  intro: "Forward deployed engineer. I sit with the people who have the problem, build on their real data, and deliver AI agents and backends that run on their stack.",
+  headline: ["I learn your business,", "then ship its AI."],
+  intro: "Forward deployed engineer. I embed with the team that has the problem, turn their workflow into a spec, and take the AI solution all the way to production.",
   note: "3 field deployments, measured in production",
   about: {
     title: "About me",
@@ -41,7 +41,7 @@ export const resume = {
       description:
         "Led a team of six to deliver a jewelry customization platform serving 1,000+ concurrent users at 99.9% uptime. Architected a Next.js, Nginx and AWS CloudFront delivery pipeline that cut image TTFB by 85%, from 3s+ to under 200ms.",
       tags: ["Next.js", "Nginx", "CloudFront"],
-      url: "https://dunne-app.vercel.app",
+      url: "https://dunne.co.in",
       note: "image TTFB down 85%",
       scene: "sun",
     },

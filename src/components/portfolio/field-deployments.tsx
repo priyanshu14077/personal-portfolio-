@@ -1,7 +1,8 @@
-import { ArrowUpRight, CheckCircle2, Target } from "lucide-react"
+import { ArrowUpRight, CheckCircle2 } from "lucide-react"
 
 import { Reveal } from "@/components/portfolio/reveal"
 import { SectionHeading } from "@/components/portfolio/section-heading"
+import { PostcardScene } from "@/components/ui/torn-postcard-portfolio"
 import { deployments, type Deployment } from "@/data/field"
 
 function Tape({ className }: { className?: string }) {
@@ -14,57 +15,45 @@ function Tape({ className }: { className?: string }) {
   )
 }
 
-function OutcomeBadge({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-sm bg-deep px-3 py-2 text-paper">
-      <p className="font-display text-2xl leading-none font-semibold">{value}</p>
-      <p className="mt-1 text-[11px] leading-tight text-paper/70">{label}</p>
-    </div>
-  )
-}
-
 function DeploymentCard({ item, index }: { item: Deployment; index: number }) {
   return (
-    <Reveal as="article" delay={index * 90} className="relative">
-      <Tape className="-top-3 left-8 -rotate-3" />
-      <div className="relative h-full rounded-sm border border-ink/15 bg-paper p-6 shadow-[0_14px_30px_-18px_rgba(20,33,58,0.55)] sm:p-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-[11px] font-semibold tracking-[0.22em] text-accent uppercase">
-            Deployment {String(index + 1).padStart(2, "0")} · {item.sector}
-          </p>
-          <p className="text-xs text-ink/55">{item.period}</p>
+    <Reveal as="article" delay={index * 80} className="relative">
+      <Tape className="-top-3 left-10 -rotate-3" />
+      <div className="relative flex h-full flex-col rounded-sm border border-ink/15 bg-paper p-8 shadow-[0_16px_34px_-20px_rgba(20,33,58,0.55)] sm:p-10">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="text-[15px] font-medium text-accent">{item.sector}</p>
+          <p className="text-[14px] text-ink/55">{item.period}</p>
         </div>
-        <h3 className="mt-3 font-display text-4xl font-medium text-ink">{item.client}</h3>
-        <p className="text-sm text-ink/70">{item.role}</p>
+        <h3 className="mt-3 font-display text-[40px] leading-[1.1] text-ink">{item.client}</h3>
+        <p className="mt-1 text-[15px] text-ink/65">{item.role}</p>
 
-        <div className="mt-6 flex gap-3">
-          <Target className="mt-0.5 size-4 shrink-0 text-accent" aria-hidden="true" />
-          <p className="text-[15px] leading-relaxed text-ink">
-            <span className="font-semibold">The problem. </span>
-            {item.problem}
-          </p>
-        </div>
+        <p className="mt-7 max-w-[56ch] text-[17px] leading-[1.65] text-ink">{item.problem}</p>
 
-        <p className="mt-5 text-[11px] font-semibold tracking-[0.2em] text-ink/60 uppercase">What I shipped</p>
-        <ul className="mt-2 space-y-1.5">
+        <h4 className="mt-8 text-[15px] font-semibold text-ink/80">What I shipped</h4>
+        <ul className="mt-3 space-y-2.5">
           {item.shipped.map((s) => (
-            <li key={s} className="flex gap-2.5 text-[15px] text-ink/85">
-              <CheckCircle2 className="mt-1 size-3.5 shrink-0 text-ink/50" aria-hidden="true" />
+            <li key={s} className="flex gap-3 text-[16px] leading-[1.55] text-ink/85">
+              <CheckCircle2 className="mt-1 size-4 shrink-0 text-ink/45" aria-hidden="true" />
               {s}
             </li>
           ))}
         </ul>
 
-        <div className="mt-6 grid grid-cols-3 gap-2">
+        <dl className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {item.outcome.map((o) => (
-            <OutcomeBadge key={o.label} {...o} />
+            <div key={o.label} className="rounded-sm bg-deep px-4 py-3.5 text-paper">
+              <dt className="sr-only">{o.label}</dt>
+              <dd className="font-display text-[26px] leading-tight">{o.value}</dd>
+              <dd className="mt-1 text-[13px] leading-snug text-paper/70">{o.label}</dd>
+            </div>
           ))}
-        </div>
+        </dl>
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-dashed border-ink/20 pt-4">
-          <ul className="flex flex-wrap gap-1.5">
+        <div className="mt-auto pt-9">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-dashed border-ink/20 pt-6">
+          <ul className="flex flex-wrap gap-2">
             {item.stack.map((t) => (
-              <li key={t} className="rounded-full border border-ink/20 px-2.5 py-0.5 text-xs text-ink/75">
+              <li key={t} className="rounded-full border border-ink/20 px-3 py-1 text-[13px] text-ink/75">
                 {t}
               </li>
             ))}
@@ -74,11 +63,12 @@ function DeploymentCard({ item, index }: { item: Deployment; index: number }) {
               href={item.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1 text-sm font-semibold text-accent underline-offset-4 hover:underline"
+              className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-accent underline-offset-4 hover:underline"
             >
-              View live <ArrowUpRight className="size-4" aria-hidden="true" />
+              Visit the live site <ArrowUpRight className="size-4" aria-hidden="true" />
             </a>
           )}
+        </div>
         </div>
       </div>
     </Reveal>
@@ -87,14 +77,18 @@ function DeploymentCard({ item, index }: { item: Deployment; index: number }) {
 
 export function FieldDeployments() {
   return (
-    <section id="deployments" aria-labelledby="deployments-title" className="paper-grain relative px-4 py-24 sm:px-8">
-      <div className="mx-auto max-w-6xl">
+    <section id="deployments" aria-labelledby="deployments-title" className="relative px-5 py-32 sm:px-10">
+      {/* The Experience chapter's route-map paper. */}
+      <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
+        <PostcardScene kind="map" />
+      </div>
+      <div className="relative mx-auto max-w-6xl">
         <SectionHeading
-          eyebrow="Field deployments"
+          eyebrow="Case studies"
           title={<span id="deployments-title">Embedded with the team, accountable for the outcome</span>}
-          note="problem → shipped → measured"
+          intro="Three client deployments: the problem I walked into, what I shipped, and what changed."
         />
-        <div className="grid gap-10 lg:grid-cols-2">
+        <div className="grid gap-12 lg:grid-cols-2">
           {deployments.map((d, i) => (
             <DeploymentCard key={d.client} item={d} index={i} />
           ))}

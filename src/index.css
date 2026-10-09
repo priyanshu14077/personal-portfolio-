@@ -13,7 +13,10 @@
   --color-ink: #26364f;
   --color-accent: #b4673d;
   --color-tape: #a9c1d6;
-  --font-display: "Cormorant Garamond", "Cormorant", Georgia, serif;
+  --color-muted: #1d2c49;
+  --color-muted-foreground: rgba(242, 237, 226, 0.55);
+  --font-display: "Newsreader", "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
   --font-hand: "Caveat", "Bradley Hand", cursive;
 }
 
@@ -25,6 +28,7 @@
 html,
 body {
   margin: 0;
+  font-family: var(--font-sans);
   background: var(--background);
   color: var(--foreground);
 }
@@ -56,4 +60,47 @@ body {
     transform: none;
     transition: none;
   }
+}
+
+/* Tech stack marquee: two copies of the list slide by exactly one copy's width. */
+.marquee {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 45s linear infinite;
+}
+.marquee-track[data-reverse] {
+  animation-direction: reverse;
+}
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+    width: auto;
+  }
+  .marquee-track > ul + ul {
+    display: none;
+  }
+  .marquee-track > ul {
+    flex-wrap: wrap;
+    padding-inline: 1rem;
+  }
+}
+
+
+/* The template ships its own serif stack; point it at the site's display face. */
+.tpp-root.tpp-root {
+  --tpp-serif: "Newsreader", "Cormorant Garamond", Georgia, serif;
 }
