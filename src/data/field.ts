@@ -27,6 +27,9 @@ export type CaseStudy = {
   facts: [Fact, Fact, Fact]
   stack: string[]
   link?: { label: string; href: string }
+  /** Featured builds span the full row and show real screenshots. */
+  featured?: boolean
+  screenshots?: { src: string; alt: string }[]
 }
 
 export type Fact = { value: string; label: string }
@@ -93,6 +96,32 @@ export const caseStudies: CaseStudy[] = [
     ],
     stack: ["Next.js", "Tailwind CSS", "UI/UX design"],
     link: { label: "Visit the site", href: "https://emtec-landing-page.vercel.app" },
+  },
+  {
+    name: "Tether",
+    kind: "independent",
+    category: "Partner outreach automation",
+    period: "Independent build",
+    role: "Solo build, live on Vercel",
+    problem:
+      "Every SaaS product has a ring of small implementation agencies, but finding a founder at each one you can actually email is slow, manual work.",
+    built: [
+      "Reads official SaaS partner directories into one store, counting a firm listed by five vendors once",
+      "Keeps firms under 100 people and ships only addresses the firm printed or that match its own domain format",
+      "A capped intro, day-3 and day-10 sequence from your own Resend domain that stops the moment someone replies",
+    ],
+    facts: [
+      { value: "23", label: "partner directories read" },
+      { value: "14,008", label: "partner firms found" },
+      { value: "4,897", label: "addresses that pass every check" },
+    ],
+    stack: ["Python", "Resend", "React Flow"],
+    link: { label: "Visit the live site", href: "https://site-two-pi-85.vercel.app/" },
+    featured: true,
+    screenshots: [
+      { src: "/projects/tether-app.jpg", alt: "Tether's pipeline view: a HubSpot partner directory linked to five agencies and their founders" },
+      { src: "/projects/tether-how.jpg", alt: "Tether's how-it-works steps beside a terminal dry run of the send command" },
+    ],
   },
   {
     name: "Bidwright",
