@@ -375,7 +375,7 @@ export function LuminaInteractiveList({
             <SplitTitle text={slide.title} />
           </h3>
           <div key={`b-${active}`} ref={bodyRef}>
-            <p className="mt-5 max-w-[42ch] text-[17px] leading-[1.65] text-paper/80">{slide.description}</p>
+            <p className="mt-5 max-w-[40ch] text-[17px] leading-[1.65] text-paper/80">{slide.description}</p>
             {slide.tags?.length ? (
               <ul className="mt-6 flex flex-wrap gap-2">
                 {slide.tags.map((t) => (

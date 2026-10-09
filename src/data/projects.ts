@@ -31,8 +31,28 @@ export const projects: LuminaSlide[] = [
     link: { label: "Visit the site", href: "https://emtec-landing-page.vercel.app" },
   },
   {
+    title: "Bidwright",
+    meta: "Independent build",
+    description:
+      "RFP intake for architecture practices. It reads a pack of documents, cites every extracted value to a line on a page, and flags where the documents disagree.",
+    media: "/projects/bidwright.jpg",
+    tags: ["Python", "FastAPI", "React", "PostgreSQL"],
+    link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/Bidwright" },
+    caption: "Illustration",
+  },
+  {
+    title: "Riverline voice agent",
+    meta: "Independent build",
+    description:
+      "A real-time voice agent for collection calls, in Hindi and English. Speech streams through STT, an LLM and TTS while a state machine, not the prompt, steers the call.",
+    media: "/projects/riverline.jpg",
+    tags: ["TypeScript", "Node.js", "Python", "XState"],
+    link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/voice-agent-orchestrator" },
+    caption: "Illustration",
+  },
+  {
     title: "Flowforge",
-    meta: "Side project",
+    meta: "Independent build",
     description:
       "A drag-and-drop builder for AI workflows. An async engine runs LLM, HTTP and condition nodes in order, triggered by webhooks, with Groq for fast LLM steps.",
     media: "/projects/flowforge.jpg",
@@ -42,7 +62,7 @@ export const projects: LuminaSlide[] = [
   },
   {
     title: "Taxops",
-    meta: "Side project",
+    meta: "Independent build",
     description:
       "A tax and expense copilot for Indian solopreneurs. Bank statements import in the background, and every amount is stored in whole paise so totals never drift.",
     media: "/projects/taxops.jpg",
@@ -51,7 +71,7 @@ export const projects: LuminaSlide[] = [
   },
   {
     title: "CEX",
-    meta: "Side project",
+    meta: "Independent build",
     description:
       "A simulated stock exchange with virtual rupee wallets: market and limit orders, FIFO cost basis and live P/L, on cached market data for ten US stocks.",
     media: "/projects/cex.jpg",
