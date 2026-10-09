@@ -41,7 +41,7 @@ export const resume = {
       description:
         "Led a team of six to deliver a jewelry customization platform serving 1,000+ concurrent users at 99.9% uptime. Architected a Next.js, Nginx and AWS CloudFront delivery pipeline that cut image TTFB by 85%, from 3s+ to under 200ms.",
       tags: ["Next.js", "Nginx", "CloudFront"],
-      url: "https://dunne-app.vercel.app",
+      url: "https://dunne.co.in",
       note: "image TTFB down 85%",
       scene: "sun",
     },
