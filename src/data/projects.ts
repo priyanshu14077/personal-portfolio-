@@ -1,0 +1,62 @@
+import type { LuminaSlide } from "@/components/ui/lumina-interactive-list"
+
+// Live projects use screenshots of the real sites, framed. Prototypes without a
+// public deploy use an illustration of what they do, captioned as such.
+export const projects: LuminaSlide[] = [
+  {
+    title: "Proploy",
+    meta: "Full-stack engineer and team lead, 2025 to now",
+    description:
+      "An AI software and expert marketplace. I led a team of five and built its agents on the native Anthropic SDK, including a RAG agent that cut research from three days to fifteen seconds.",
+    media: "/projects/proploy.jpg",
+    tags: ["Anthropic SDK", "FastAPI", "Next.js", "Cloud Run"],
+    link: { label: "Visit proploy.io", href: "https://proploy.io" },
+  },
+  {
+    title: "Dunne",
+    meta: "Full-stack engineer and team lead, 2025",
+    description:
+      "A jewellery customisation store. I led a team of six to a platform serving 1,000+ concurrent shoppers at 99.9% uptime, with images loading 85% faster through CloudFront.",
+    media: "/projects/dunne.jpg",
+    tags: ["Next.js", "Nginx", "AWS CloudFront"],
+    link: { label: "Visit dunne.co.in", href: "https://dunne.co.in" },
+  },
+  {
+    title: "Emtech Solutions",
+    meta: "Full-stack engineer, 2025",
+    description:
+      "The corporate site for an MEPF engineering firm, which I owned from design to deployment: 72+ projects across 12 sectors and a proposal form that brings in leads.",
+    media: "/projects/emtech.jpg",
+    tags: ["Next.js", "UI/UX design"],
+    link: { label: "Visit the site", href: "https://emtec-landing-page.vercel.app" },
+  },
+  {
+    title: "Flowforge",
+    meta: "Side project",
+    description:
+      "A drag-and-drop builder for AI workflows. An async engine runs LLM, HTTP and condition nodes in order, triggered by webhooks, with Groq for fast LLM steps.",
+    media: "/projects/flowforge.jpg",
+    tags: ["Node.js", "TypeScript", "Prisma", "Groq"],
+    link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/Flowforge" },
+    caption: "Illustration",
+  },
+  {
+    title: "Taxops",
+    meta: "Side project",
+    description:
+      "A tax and expense copilot for Indian solopreneurs. Bank statements import in the background, and every amount is stored in whole paise so totals never drift.",
+    media: "/projects/taxops.jpg",
+    tags: ["FastAPI", "SQLAlchemy", "Redis"],
+    caption: "Illustration",
+  },
+  {
+    title: "CEX",
+    meta: "Side project",
+    description:
+      "A simulated stock exchange with virtual rupee wallets: market and limit orders, FIFO cost basis and live P/L, on cached market data for ten US stocks.",
+    media: "/projects/cex.jpg",
+    tags: ["Next.js 16", "FastAPI", "Supabase"],
+    link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/CEX" },
+    caption: "Illustration",
+  },
+]
