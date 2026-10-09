@@ -31,6 +31,15 @@ export const projects: LuminaSlide[] = [
     link: { label: "Visit the site", href: "https://emtec-landing-page.vercel.app" },
   },
   {
+    title: "Tether",
+    meta: "Independent build, live",
+    description:
+      "Finds the agencies that implement a SaaS product in its official partner directory, verifies which founders can be emailed, and runs a short, capped sequence to them.",
+    media: "/projects/tether.jpg",
+    tags: ["Python", "Resend", "React Flow"],
+    link: { label: "Visit the live site", href: "https://site-two-pi-85.vercel.app/" },
+  },
+  {
     title: "Bidwright",
     meta: "Independent build",
     description:
