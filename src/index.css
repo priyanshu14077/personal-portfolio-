@@ -99,17 +99,6 @@ body {
   }
 }
 
-/* Hero walkthrough: the live stage's items enter one after another. */
-.is-live .hero-pop {
-  animation: hero-pop 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--i, 0) * 420ms + 150ms);
-}
-@keyframes hero-pop {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.97);
-  }
-}
 
 /* The template ships its own serif stack; point it at the site's display face. */
 .tpp-root.tpp-root {
