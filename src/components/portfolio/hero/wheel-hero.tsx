@@ -1,87 +1,61 @@
-import { ArrowDown, Mail } from "lucide-react"
+import { ArrowDown } from "lucide-react"
 
-import { DeploymentCover, PrototypeCover, StageCover } from "@/components/portfolio/hero/wheel-covers"
+import { WheelCardCover } from "@/components/portfolio/hero/wheel-covers"
+import { PostcardScene } from "@/components/ui/torn-postcard-portfolio"
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel"
-import { deployments } from "@/data/field"
-import { prototypes, stageDetails, stages } from "@/data/hero"
-import { resume } from "@/data/resume"
+import { capabilities, steps } from "@/data/hero"
 
-const items: WorksWheelItem[] = [
-  ...stages.map((s) => ({
-    title: s.title,
-    kicker: `Step ${s.step} · ${s.verb}`,
-    cover: <StageCover stage={s} />,
-    ...stageDetails[s.id],
-  })),
-  ...deployments.map((d, i) => ({
-    title: d.client,
-    kicker: `Deployment · ${d.sector} · ${d.period}`,
-    cover: <DeploymentCover item={d} index={i} />,
-    summary: d.problem,
-    points: [...d.shipped, d.outcome.map((o) => `${o.value} ${o.label}`).join(" · ")],
-    link: d.url ? { label: "Visit live", href: d.url } : undefined,
-  })),
-  ...prototypes.map((p) => ({
-    title: p.name,
-    kicker: p.kicker,
-    cover: <PrototypeCover item={p} />,
-    summary: p.summary,
-    points: p.points,
-    link: p.link,
-  })),
-]
+const items: WorksWheelItem[] = [...steps, ...capabilities].map((card) => ({
+  title: card.title,
+  kicker: card.kind === "step" ? `Step ${steps.indexOf(card) + 1} of ${steps.length}` : "Capability",
+  cover: <WheelCardCover card={card} />,
+  summary: card.summary,
+  points: card.points,
+}))
 
 export function WheelHero() {
   return (
     <section
       id="field-work"
       aria-labelledby="field-work-title"
-      className="relative flex h-svh min-h-[560px] w-full flex-col overflow-hidden bg-[linear-gradient(180deg,#24375a_0%,#1a2a47_38%,#14213a_70%,#0c1528_100%)]"
+      className="relative flex h-svh min-h-[640px] w-full flex-col overflow-hidden bg-night"
     >
-      {/* Faint ruled lines, like the page of a field notebook. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(180deg,transparent_0,transparent_39px,rgba(242,237,226,0.035)_39px,rgba(242,237,226,0.035)_40px)]"
-      />
-      {/* On phones the intro sits above the wheel; from md up it floats over the corner. */}
-      <div className="pointer-events-none relative z-[160] max-w-[min(100vw,330px)] px-5 pt-6 pb-2 md:absolute md:top-0 md:left-0 md:p-8">
-        <p className="text-[11px] font-semibold tracking-[0.28em] text-tape uppercase">Field work</p>
-        <h2 id="field-work-title" className="mt-3 font-display text-[clamp(1.7rem,2.8vw,2.4rem)] leading-[1.12] text-paper">
-          From a business problem <em className="text-accent">to AI in production.</em>
+      {/* The Contact chapter's moonlit night carries on behind the wheel. */}
+      <PostcardScene kind="night" snow />
+
+      <header className="relative z-[160] mx-auto w-full max-w-6xl px-5 pt-10 sm:px-10 md:pt-14">
+        <p className="text-[15px] font-medium text-tape">How I work</p>
+        <h2 id="field-work-title" className="mt-3 font-display text-[clamp(2rem,3.6vw,3rem)] leading-[1.15] text-paper">
+          From a business problem to AI in production
         </h2>
-        <p className="mt-3 hidden text-[13.5px] leading-relaxed text-paper/65 md:block">
-          Turn the wheel: the four steps of how I work, three client deployments and three prototypes. Hover or
-          click any card for the story.
-        </p>
-        <div className="pointer-events-auto mt-4 hidden gap-2 md:flex">
-          <a
-            href={`mailto:${resume.email}`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-paper px-3.5 py-1.5 text-[13px] font-semibold text-ink transition-colors hover:bg-accent hover:text-paper"
-          >
-            <Mail className="size-3.5" aria-hidden="true" /> Email me
-          </a>
+        <p className="mt-4 hidden max-w-[62ch] text-[16px] leading-[1.65] text-paper/75 md:block">
+          Four steps I follow with every team, and four capabilities I bring to it. Turn the wheel, then hover or click
+          a card.{" "}
           <a
             href="#impact"
-            className="inline-flex items-center gap-1.5 rounded-full border border-paper/30 px-3.5 py-1.5 text-[13px] font-semibold text-paper transition-colors hover:border-accent hover:text-accent"
+            className="inline-flex items-center gap-1 font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
           >
-            Skip ahead <ArrowDown className="size-3.5" aria-hidden="true" />
+            Skip to results <ArrowDown className="size-3.5" aria-hidden="true" />
           </a>
-        </div>
-      </div>
+        </p>
+      </header>
 
       {/* Bottom margin keeps the controls clear of the next section's torn edge. */}
       <div className="relative mb-9 min-h-0 flex-1">
         <WorksWheel
           items={items}
-          label="Forward deployed"
-          action="Details"
+          label="How I work"
+          action=""
+          showTitle={false}
+          detailSide="left"
           wheelUnits={320}
+          cardHeight={0.46}
           className="absolute inset-0 bg-transparent"
         />
       </div>
 
-      <p className="pointer-events-none absolute right-8 bottom-6 z-[160] hidden text-right font-hand text-xl text-tape md:block">
-        scroll or drag to turn the wheel
+      <p className="pointer-events-none absolute right-10 bottom-12 z-[160] hidden font-hand text-xl text-tape md:block">
+        scroll or drag to turn
       </p>
     </section>
   )

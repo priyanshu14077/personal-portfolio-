@@ -48,6 +48,12 @@ export interface WorksWheelProps extends Omit<
   action?: string;
   /** Wheel delta that turns one item. Lower turns faster. @default 900 */
   wheelUnits?: number;
+  /** Show the front card's title beside it. @default true */
+  showTitle?: boolean;
+  /** Which side the detail panel opens on (wide stages only). @default "right" */
+  detailSide?: "left" | "right";
+  /** Front card height as a fraction of the stage. @default 0.38 */
+  cardHeight?: number;
 }
 
 /* Geometry. The card is measured against the stage; everything else is measured
@@ -72,7 +78,7 @@ const RING_R = 1.14; // ring radius
    makes the difference between a stack of cards and a wheel seen side on. */
 const BOW = 1.82;
 const TITLE = 0.124; // ring label and front-card title
-const INDEX = 0.04; // the index down the right-hand side
+const INDEX = 0.046; // the index down the right-hand side
 /** Items either side of the front still worth drawing. Past this a card is
     edge-on, and further round it would stack up on the vanishing point. */
 const CULL = 1.6;
@@ -121,20 +127,25 @@ function place(
 function DetailPanel({
   item,
   sheet,
+  side,
   onClose,
 }: {
   item: WorksWheelItem;
   sheet: boolean;
+  side: "left" | "right";
   onClose: () => void;
 }) {
   return (
     <aside
       aria-live="polite"
       className={cn(
-        "border-foreground/15 bg-background/85 text-foreground absolute z-[200] rounded-lg border p-5 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.8)] backdrop-blur-md",
+        "border-foreground/15 bg-background/90 text-foreground absolute z-[200] rounded-lg border p-7 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.8)] backdrop-blur-md",
         sheet
           ? "inset-x-3 bottom-16 max-h-[48%] overflow-y-auto"
-          : "top-1/2 right-[3%] w-[min(25%,340px)] -translate-y-[30%]",
+          : cn(
+              "top-1/2 w-[min(29%,400px)] -translate-y-1/2",
+              side === "left" ? "left-[3%]" : "right-[3%]",
+            ),
       )}
     >
       <button
@@ -146,23 +157,23 @@ function DetailPanel({
         ×
       </button>
       {item.kicker ? (
-        <p className="text-accent text-[10px] font-semibold tracking-[0.22em] uppercase">
+        <p className="text-accent text-[14px] font-medium">
           {item.kicker}
         </p>
       ) : null}
-      <h3 className="font-display mt-1 pr-6 text-2xl leading-snug">
+      <h3 className="font-display mt-2 pr-6 text-[28px] leading-[1.15]">
         {item.title}
       </h3>
       {item.summary ? (
-        <p className="text-foreground/75 mt-2 text-[13.5px] leading-relaxed">
+        <p className="text-foreground/80 mt-3 text-[15.5px] leading-[1.65]">
           {item.summary}
         </p>
       ) : null}
       {item.points?.length ? (
-        <ul className="mt-3 space-y-1.5">
+        <ul className="mt-5 space-y-2.5">
           {item.points.map((p) => (
-            <li key={p} className="text-foreground/85 flex gap-2 text-[13px]">
-              <span className="bg-accent mt-[7px] size-1.5 shrink-0 rounded-full" />
+            <li key={p} className="text-foreground/85 flex gap-3 text-[15px] leading-[1.55]">
+              <span className="bg-accent mt-[9px] size-1.5 shrink-0 rounded-full" />
               {p}
             </li>
           ))}
@@ -173,7 +184,7 @@ function DetailPanel({
           href={item.link.href}
           target={item.link.href.startsWith("http") ? "_blank" : undefined}
           rel="noreferrer"
-          className="text-accent mt-4 inline-flex items-center gap-1 text-sm font-semibold underline-offset-4 hover:underline"
+          className="text-accent mt-6 inline-flex items-center gap-1.5 text-[15px] font-semibold underline-offset-4 hover:underline"
         >
           {item.link.label} ↗
         </a>
@@ -187,6 +198,9 @@ export function WorksWheel({
   label = "Works '26",
   action = "View",
   wheelUnits = 900,
+  showTitle = true,
+  detailSide = "right",
+  cardHeight = CARD_H,
   className,
   ...props
 }: WorksWheelProps) {
@@ -236,7 +250,7 @@ export function WorksWheel({
   const metrics = React.useMemo(() => {
     const { w, h } = stage;
     const maxW = w < NARROW ? CARD_MAX_W_NARROW : CARD_MAX_W;
-    const cardW = Math.min(h * CARD_H * CARD_RATIO, w * maxW);
+    const cardW = Math.min(h * cardHeight * CARD_RATIO, w * maxW);
     const cardH = cardW / CARD_RATIO;
     const drumR = cardH * DRUM;
     const ringR = cardH * RING_R;
@@ -254,9 +268,9 @@ export function WorksWheel({
       bow: cardH * BOW,
       depth: cardH * LENS,
       title: cardH * TITLE,
-      index: Math.max(cardH * INDEX, 11),
+      index: Math.max(cardH * INDEX, 13),
     };
-  }, [stage, count]);
+  }, [stage, count, cardHeight]);
 
   // One pass per frame: ease toward the target, then write every transform.
   React.useEffect(() => {
@@ -513,7 +527,7 @@ export function WorksWheel({
         ref={titleRef}
         className={cn(
           "font-display pointer-events-none absolute top-1/2 left-[5%] max-w-[26%] -translate-y-1/2 leading-[1.12] opacity-0",
-          narrow && "hidden",
+          (narrow || !showTitle) && "hidden",
         )}
         style={{ fontSize: metrics.title }}
       >
@@ -522,7 +536,7 @@ export function WorksWheel({
 
       <ol
         className={cn(
-          "text-muted-foreground absolute top-[7.5%] right-[2.5%] z-[150] text-right leading-[1.75]",
+          "text-muted-foreground absolute top-1/2 right-[3%] z-[150] -translate-y-1/2 text-right leading-[2]",
           narrow && "hidden",
         )}
         style={{ fontSize: metrics.index }}
@@ -550,21 +564,21 @@ export function WorksWheel({
           <button
             type="button"
             onClick={() => to(Math.round(target.current) - 1)}
-            className="border-foreground/20 rounded-full border px-4 py-2 text-sm"
+            className="border-foreground/25 bg-background/90 rounded-full border px-4 py-2 text-sm backdrop-blur-sm"
           >
             ↑ Prev
           </button>
           <button
             type="button"
             onClick={() => reveal(active)}
-            className="bg-foreground text-background rounded-full px-4 py-2 text-sm font-semibold"
+            className="bg-accent text-foreground rounded-full px-5 py-2 text-sm font-semibold shadow-lg"
           >
             {atRing ? "Start" : "Details"}
           </button>
           <button
             type="button"
             onClick={() => to(Math.round(target.current) + 1)}
-            className="border-foreground/20 rounded-full border px-4 py-2 text-sm"
+            className="border-foreground/25 bg-background/90 rounded-full border px-4 py-2 text-sm backdrop-blur-sm"
           >
             Next ↓
           </button>
@@ -572,7 +586,7 @@ export function WorksWheel({
       ) : null}
 
       {detail && shown !== null ? (
-        <DetailPanel item={detail} sheet={narrow} onClose={() => { setOpened(null); setHovered(null); }} />
+        <DetailPanel item={detail} sheet={narrow} side={detailSide} onClose={() => { setOpened(null); setHovered(null); }} />
       ) : null}
     </section>
   );

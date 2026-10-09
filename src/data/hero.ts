@@ -1,169 +1,137 @@
-// The hero's worked example. It is modelled on the Proploy deployment; the figures
-// (3 days → 15 seconds, sub-50ms search, −40% infra) are from the resume, while the
-// notes, spec and console lines illustrate the process rather than quote anyone.
+// The "How I work" wheel. Deliberately client-agnostic: it explains the method and
+// the technical depth behind it, not any one project. Projects live in the case studies.
 
-export type StageId = "absorb" | "spec" | "build" | "ship"
+export type WheelCardKind = "step" | "capability"
 
-export type Stage = {
-  id: StageId
-  step: string
-  verb: string
+export type WheelCard = {
+  id: string
+  kind: WheelCardKind
   title: string
-  caption: string
+  /** One line on the card face. */
+  tagline: string
+  /** The detail panel. */
+  summary: string
+  points: string[]
 }
 
-export const stages: Stage[] = [
+export const steps: WheelCard[] = [
   {
-    id: "absorb",
-    step: "01",
-    verb: "Absorb",
-    title: "Absorb the business",
-    caption: "Sit with the team, learn the workflow, write down what actually hurts.",
+    id: "discover",
+    kind: "step",
+    title: "Discover",
+    tagline: "Learn the work before writing the code.",
+    summary:
+      "I sit with the people who own the problem and learn the workflow as they live it: where the hours go, what can't break, and who has to sign off.",
+    points: [
+      "Shadow the team and map the workflow end to end",
+      "Collect constraints: data access, compliance, the existing stack",
+      "Pick the one bottleneck worth automating first",
+    ],
   },
   {
-    id: "spec",
-    step: "02",
-    verb: "Translate",
-    title: "Turn pain into a spec",
-    caption: "Users, data, guardrails and one success metric everyone agrees on.",
+    id: "scope",
+    kind: "step",
+    title: "Scope",
+    tagline: "Turn the pain into a spec everyone signs.",
+    summary:
+      "The problem becomes something an engineer can build and a stakeholder can approve: users, data, guardrails and one metric that defines done.",
+    points: [
+      "Write the job to be done in the team's own words",
+      "Agree the success metric before building anything",
+      "Set guardrails up front, such as citing every source",
+    ],
   },
   {
     id: "build",
-    step: "03",
-    verb: "Build",
-    title: "Build the AI solution",
-    caption: "A Claude RAG agent on the Anthropic SDK, grounded in the team's own data.",
+    kind: "step",
+    title: "Build",
+    tagline: "A working AI system on the team's real data.",
+    summary:
+      "I prototype in days, not weeks, on the team's own data, so feedback is about the real thing rather than a mock-up.",
+    points: [
+      "Retrieval over the team's documents and records",
+      "An LLM for reasoning, with answers traced back to sources",
+      "Weekly demos to the people who will use it",
+    ],
   },
   {
     id: "ship",
-    step: "04",
-    verb: "Ship",
-    title: "Ship to production",
-    caption: "Streamed, cached and auto-scaled, then measured against the metric.",
+    kind: "step",
+    title: "Ship",
+    tagline: "Own it in production, then measure it.",
+    summary:
+      "Production is part of the job: streaming, caching, auto-scaling, and a dashboard that shows whether the metric moved.",
+    points: [
+      "Containerised services on auto-scaling cloud infrastructure",
+      "Monitoring, cost tracking and on-call ownership",
+      "A hand-over the team can run without me",
+    ],
   },
 ]
 
-export const discoveryNotes = [
-  { who: "Procurement", text: "Vendor research takes ~3 days per request" },
-  { who: "Compliance", text: "Every answer needs a source we can check" },
-  { who: "Operations", text: "It has to fit the buying workflow we have" },
-  { who: "Analysts", text: "Search has to feel instant" },
-]
-
-export const spec = [
-  { field: "Users", value: "Procurement analysts" },
-  { field: "Job", value: "Research & shortlist vendors" },
-  { field: "Data", value: "Vendor and catalog records" },
-  { field: "Guardrail", value: "Cite every source" },
-  { field: "Metric", value: "Research in seconds, not days" },
-]
-
-export const agentFlow = ["Query", "Retrieve", "Claude", "Answer + sources"]
-
-export const consoleLines = [
-  { kind: "prompt", text: "Shortlist ISO-certified suppliers for industrial sensors" },
-  { kind: "step", text: "retrieve · Postgres full-text (GIN) over vendor data" },
-  { kind: "step", text: "claude · rank and draft with citations" },
-  { kind: "answer", text: "3 vendors ranked · sources [1] [2] [3]" },
-] as const
-
-export const deployLog = [
-  "FastAPI agent service containerised with Docker",
-  "Deployed to GCP Cloud Run with auto-scaling",
-  "SSE streaming to Next.js, Redis cache in front",
-  "Search tuned to under 50ms",
-]
-
-export const outcome = {
-  from: "3 days",
-  to: "15 seconds",
-  label: "per research request",
-  extra: "infra cost −40%",
-}
-
-/** What each walkthrough card says when hovered or opened. */
-export const stageDetails: Record<StageId, { summary: string; points: string[] }> = {
-  absorb: {
-    summary:
-      "Before any code, I sit with the people who own the problem and learn the workflow as they live it: where the time goes, what can't break, and who signs off.",
-    points: [
-      "Shadow the team and map the workflow end to end",
-      "Collect constraints: compliance, data access, existing stack",
-      "Find the one bottleneck worth automating first",
-    ],
-  },
-  spec: {
-    summary:
-      "Business pain becomes something an engineer can build and a stakeholder can sign: users, data, guardrails, and a single metric that defines done.",
-    points: [
-      "Write the job-to-be-done in the team's own words",
-      "Agree the success metric before building",
-      "Set guardrails up front, e.g. every answer cites its source",
-    ],
-  },
-  build: {
-    summary:
-      "I build the AI on the team's own data. At Proploy that was a Claude-based RAG agent on the native Anthropic SDK, grounded in vendor records.",
-    points: [
-      "Retrieval over the team's data, tuned for speed",
-      "Claude for reasoning, with citations back to sources",
-      "Prototype in days so feedback is about the real thing",
-    ],
-  },
-  ship: {
-    summary:
-      "Then I own it in production: streaming, caching, auto-scaling and measurement against the metric we agreed.",
-    points: [
-      "Containerised FastAPI on GCP Cloud Run with auto-scaling",
-      "SSE streaming to Next.js with Redis caching",
-      "Proploy result: research from 3 days to 15 seconds, infra cost −40%",
-    ],
-  },
-}
-
-export type Prototype = {
-  name: string
-  kicker: string
-  summary: string
-  points: string[]
-  tags: string[]
-  link?: { label: string; href: string }
-}
-
-export const prototypes: Prototype[] = [
+export const capabilities: WheelCard[] = [
   {
-    name: "Flowforge",
-    kicker: "Prototype · AI workflows",
-    summary: "A visual, drag-and-drop AI workflow builder: automation as a graph you can see and run.",
+    id: "rag",
+    kind: "capability",
+    title: "Retrieval & RAG",
+    tagline: "Grounded answers from a team's own knowledge.",
+    summary:
+      "Most business AI is a retrieval problem. I build pipelines that find the right context fast and make every answer traceable.",
     points: [
-      "Async engine runs LLM, HTTP and Condition nodes in topological order",
-      "Webhook-triggered runs",
-      "Groq LPU inference for low-latency LLM steps",
+      "Chunking and indexing tuned to the documents",
+      "Hybrid search: Postgres full-text with GIN indexes, plus vectors in Qdrant",
+      "Citations back to the source, so answers can be checked",
     ],
-    tags: ["Node.js", "TypeScript", "Prisma", "Groq"],
-    link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/Flowforge" },
   },
   {
-    name: "Taxops",
-    kicker: "Prototype · fintech copilot",
-    summary: "An AI-native tax and expense copilot for Indian solopreneurs.",
+    id: "agents",
+    kind: "capability",
+    title: "Agents & tool use",
+    tagline: "LLMs that plan, call tools and check their work.",
+    summary:
+      "When one prompt isn't enough, I build agents that break the task down, call real systems, and stop when the job is done.",
     points: [
-      "Async FastAPI with SQLAlchemy 2.0, Alembic, Redis and JWT auth",
-      "Background CSV bank-statement imports",
-      "Amounts stored in integer paise for exact precision",
+      "Native Anthropic SDK tool use, LangChain and LangGraph",
+      "Clear tool contracts and guardrails around side effects",
+      "Human review where a wrong action would be costly",
     ],
-    tags: ["FastAPI", "SQLAlchemy", "Redis"],
   },
   {
-    name: "CEX",
-    kicker: "Prototype · trading systems",
-    summary: "A simulated stock exchange with virtual INR wallets and JWT-secured APIs.",
+    id: "realtime",
+    kind: "capability",
+    title: "Real-time UX",
+    tagline: "Answers that stream in, not spin.",
+    summary:
+      "People trust an AI tool they can watch working. I stream responses token by token and cache what doesn't need recomputing.",
     points: [
-      "Market and limit orders, FIFO cost basis, portfolio P/L",
-      "Alpha Vantage data behind a 5-minute cache with mock fallback",
-      "Next.js 16, FastAPI and Supabase PostgreSQL",
+      "Server-sent events from FastAPI to React and Next.js",
+      "Redis caching for repeated queries and sessions",
+      "Interfaces that show progress, sources and errors plainly",
     ],
-    tags: ["Next.js 16", "FastAPI", "Supabase"],
-    link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/CEX" },
+  },
+  {
+    id: "scale",
+    kind: "capability",
+    title: "Production & scale",
+    tagline: "Systems that hold up when real users arrive.",
+    summary:
+      "I design for the traffic and the bill: event-driven services, auto-scaling, and delivery paths that keep latency low.",
+    points: [
+      "Docker on GCP Cloud Run and AWS, scaling to zero when idle",
+      "Event-driven work with Pub/Sub and background jobs",
+      "CDN and caching layers for fast delivery worldwide",
+    ],
   },
 ]
+
+/** What each card face shows, kept short so the wheel stays readable. */
+export const faces: Record<string, string[]> = {
+  discover: ["“This report takes two days every week.”", "“Every answer needs a source.”", "“It has to fit the tools we use.”"],
+  scope: ["Users", "Data", "Guardrails", "Success metric"],
+  build: ["Question", "Retrieve", "LLM", "Answer + sources"],
+  ship: ["Containerise", "Deploy", "Auto-scale", "Measure"],
+  rag: ["Docs", "Chunk", "Index", "Retrieve", "Cite"],
+  agents: ["Plan", "Call tool", "Observe", "Answer"],
+  realtime: ["Request", "Stream", "Cache"],
+  scale: ["Container", "Cloud Run", "Pub/Sub", "CDN"],
+}
