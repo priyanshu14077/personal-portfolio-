@@ -75,4 +75,14 @@ export interface TornPostcardPortfolioProps {
 }
 
 export declare function TornPostcardPortfolio(props: TornPostcardPortfolioProps): React.JSX.Element
+export type PostcardSceneKind = "night" | "peaks" | "pines" | "sky" | "map"
+
+/** One of the template's illustrated backgrounds as an absolutely positioned layer. */
+export declare function PostcardScene(props: {
+  kind: PostcardSceneKind
+  snow?: boolean
+  className?: string
+  style?: React.CSSProperties
+}): React.JSX.Element
+
 export default TornPostcardPortfolio
