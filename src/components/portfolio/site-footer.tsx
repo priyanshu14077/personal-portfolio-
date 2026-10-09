@@ -5,7 +5,7 @@ import { resume } from "@/data/resume"
 
 export function SiteFooter() {
   return (
-    <footer className="paper-grain relative px-4 pt-20 pb-10 sm:px-8">
+    <footer className="paper-grain relative px-5 pt-28 pb-12 sm:px-10">
       <TornEdge position="top" color="#f2ede2" seed={23} />
       <div className="mx-auto flex max-w-6xl flex-col gap-10 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
@@ -13,7 +13,7 @@ export function SiteFooter() {
           <h2 className="mt-2 font-display text-5xl leading-[1.1] font-normal text-ink sm:text-6xl">
             Put me in the room with it.
           </h2>
-          <p className="mt-4 text-[15px] text-ink/75">
+          <p className="mt-5 max-w-[58ch] text-[17px] leading-[1.65] text-ink/75">
             Open to forward deployed, solutions and AI platform engineering roles. Based in {resume.location}, happy to
             work with teams anywhere.
           </p>
@@ -40,8 +40,8 @@ export function SiteFooter() {
           </div>
         </div>
       </div>
-      <p className="mx-auto mt-16 max-w-6xl border-t border-dashed border-ink/20 pt-6 text-xs text-ink/55">
-        © {new Date().getFullYear()} {resume.name} · Forward deployed engineer
+      <p className="mx-auto mt-20 max-w-6xl border-t border-dashed border-ink/20 pt-6 text-[13px] text-ink/55">
+        © {new Date().getFullYear()} {resume.name}, forward deployed engineer
       </p>
     </footer>
   )
