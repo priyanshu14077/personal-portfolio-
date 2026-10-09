@@ -100,6 +100,19 @@ body {
 }
 
 
+/* Lumina slider: the line under the active index entry fills until the next slide. */
+.lumina-fill {
+  transform: scaleX(0);
+  animation-name: lumina-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes lumina-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* The template ships its own serif stack; point it at the site's display face. */
 .tpp-root.tpp-root {
   --tpp-serif: "Newsreader", "Cormorant Garamond", Georgia, serif;

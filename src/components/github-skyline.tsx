@@ -19,8 +19,7 @@ export function GithubSkyline() {
         <p className="text-[15px] font-medium text-[#a9c1d6]">Off the clock</p>
         <h2
           id="commits-title"
-          className="mt-3 mb-14 text-[clamp(2.25rem,4vw,3.25rem)] leading-[1.15] font-normal"
-          style={{ fontFamily: '"Cormorant Garamond", Georgia, serif' }}
+          className="mt-3 mb-14 font-display text-[clamp(2.25rem,4vw,3.25rem)] leading-[1.15] font-normal"
         >
           Between deployments, I keep building
         </h2>
