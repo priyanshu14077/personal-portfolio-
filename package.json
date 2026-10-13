@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "contributions": "./scripts/fetch-contributions.sh",
     "studio": "uv run --project studio studio",
-    "radio": "node scripts/fetch-radio.mjs"
+    "radio": "node scripts/fetch-radio.mjs",
+    "sports": "node scripts/fetch-sports.mjs"
   },
   "dependencies": {
     "@mdx-js/react": "^3.1.1",
