@@ -45,7 +45,7 @@ export const projects: LuminaSlide[] = [
     title: "Bidwright",
     meta: "Independent build",
     description:
-      "RFP intake for architecture practices. It reads a pack of documents, cites every extracted value to a line on a page, and flags where the documents disagree.",
+      "Turns a stack of RFP documents into a cited, checked brief. It reads every document in the pack, cites each extracted value to a line on a page, and flags where the documents disagree.",
     media: "/projects/bidwright.jpg",
     tags: ["Python", "FastAPI", "React", "PostgreSQL"],
     link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/Bidwright" },

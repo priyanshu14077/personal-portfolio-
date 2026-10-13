@@ -421,13 +421,25 @@ export function LuminaInteractiveList({
         className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,21,40,0.96)_0%,rgba(12,21,40,0.85)_36%,rgba(12,21,40,0)_62%)] max-md:bg-[linear-gradient(0deg,rgba(12,21,40,0.97)_0%,rgba(12,21,40,0.92)_58%,rgba(12,21,40,0.55)_78%,rgba(12,21,40,0.25)_100%)]"
       />
 
-      <p className="absolute top-10 right-6 font-display text-[15px] text-paper/70 tabular-nums sm:right-10">
+      {/* The whole slide opens the project's live site or repository. Text and controls sit above it. */}
+      {slide.link ? (
+        <a
+          href={slide.link.href}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`${slide.title}: ${slide.link.label}`}
+          title={slide.link.label}
+          className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-accent"
+        />
+      ) : null}
+
+      <p className="pointer-events-none absolute top-10 right-6 font-display text-[15px] text-paper/70 tabular-nums sm:right-10">
         <span className="text-paper">{String(active + 1).padStart(2, "0")}</span> / {String(count).padStart(2, "0")}
       </p>
 
       <div
         aria-live="polite"
-        className="absolute inset-x-0 bottom-36 px-5 sm:px-10 md:top-1/2 md:bottom-auto md:-translate-y-1/2 lg:pl-[max(2.5rem,calc((100vw-72rem)/2+2.5rem))]"
+        className="pointer-events-none absolute inset-x-0 bottom-36 px-5 sm:px-10 md:top-1/2 md:bottom-auto md:-translate-y-1/2 lg:pl-[max(2.5rem,calc((100vw-72rem)/2+2.5rem))]"
       >
         <div className="max-w-[31rem]">
           {slide.meta ? <p className="text-[15px] font-medium text-tape">{slide.meta}</p> : null}
@@ -449,32 +461,20 @@ export function LuminaInteractiveList({
                 ))}
               </ul>
             ) : null}
-            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
-              {slide.link ? (
-                <a
-                  href={slide.link.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full bg-paper px-5 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-accent hover:text-paper"
-                >
-                  {slide.link.label}
-                </a>
-              ) : null}
-              {slide.caseStudy ? (
-                <Link
-                  to={slide.caseStudy.href}
-                  className="inline-flex items-center gap-1 text-[14px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
-                >
-                  {slide.caseStudy.label} <ArrowUpRight className="size-4" aria-hidden="true" />
-                </Link>
-              ) : null}
-            </div>
+            {slide.caseStudy ? (
+              <Link
+                to={slide.caseStudy.href}
+                className="pointer-events-auto mt-7 inline-flex items-center gap-1 text-[14px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
+              >
+                {slide.caseStudy.label} <ArrowUpRight className="size-4" aria-hidden="true" />
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>
 
       {slide.caption ? (
-        <p className="absolute right-6 bottom-28 text-[13px] text-paper/60 sm:right-10 md:bottom-32">{slide.caption}</p>
+        <p className="pointer-events-none absolute right-6 bottom-28 text-[13px] text-paper/60 sm:right-10 md:bottom-32">{slide.caption}</p>
       ) : null}
 
       {/* The index: one entry per slide, with a line that fills until the next one. */}
