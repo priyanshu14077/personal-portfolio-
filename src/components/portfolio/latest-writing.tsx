@@ -40,12 +40,21 @@ export function LatestWriting() {
             </Reveal>
           ))}
         </ul>
-        <Link
-          to="/blog"
-          className="mt-10 inline-flex items-center gap-1 text-[15px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
-        >
-          All posts <ArrowUpRight className="size-4" aria-hidden="true" />
-        </Link>
+        <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3">
+          {[
+            { to: "/blog", label: "All posts" },
+            { to: "/now", label: "What I'm up to now" },
+            { to: "/now/listening", label: "Tune in to my radio" },
+          ].map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              className="inline-flex items-center gap-1 text-[15px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
+            >
+              {l.label} <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   )

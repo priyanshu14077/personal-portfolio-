@@ -26,6 +26,7 @@ export const now: NowItem[] = [
   {
     label: "Listening to",
     text: "Jazz, hip hop, and a lot of Led Zeppelin and '70s and '80s rock.",
+    link: { label: "Tune in to my radio", href: "/now/listening" },
   },
   {
     label: "Playing",

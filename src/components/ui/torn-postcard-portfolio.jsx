@@ -4052,6 +4052,7 @@ I'd love to hear more about ` +
                     ),
                     // Site addition: the blog lives outside the chapters.
                     t.jsx("a", { className: "tpp-link", href: "/blog", children: "Blog" }, "blog"),
+                    t.jsx("a", { className: "tpp-link", href: "/now", children: "Now" }, "now"),
                   ],
                 }),
                 t.jsxs("div", {
