@@ -149,7 +149,7 @@ If I built it again, the model would return JSON against a schema and a determin
 
 ## The hardest problem: streaming through three services
 
-Agent turns take tens of seconds, so answers have to stream. Getting them to stream reliably through the browser, Next.js, the gateway and the agent touched every layer of the stack. The full story is in [Streaming an agent's answer through three services](/blog/streaming-an-agent-through-three-services); the short version:
+Agent turns take tens of seconds, so answers have to stream. Getting them to stream reliably through the browser, Next.js, the gateway and the agent touched every layer of the stack. The full story is in [Streaming AI agent responses across three services](/blog/streaming-ai-agent-responses-across-three-services); the short version:
 
 <Figure caption="One research turn. The gateway is a stateful proxy: it parses the agent's events, saves the turn, and re-emits its own events to the browser.">
   <Mermaid label="Sequence of one streamed research turn" chart={`

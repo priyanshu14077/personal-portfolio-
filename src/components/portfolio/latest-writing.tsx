@@ -6,7 +6,7 @@ import { PostThumbnail } from "@/components/blog/post-thumbnail"
 import { CardLabel, CardTitle, FieldCard } from "@/components/portfolio/field-card"
 import { Reveal } from "@/components/portfolio/reveal"
 import { SectionHeading } from "@/components/portfolio/section-heading"
-import { BLOG_INTRO, posts } from "@/lib/blog"
+import { posts } from "@/lib/blog"
 
 /** The three newest posts, on the home page before the footer. */
 export function LatestWriting() {
@@ -19,7 +19,6 @@ export function LatestWriting() {
           tone="dark"
           eyebrow="Writing"
           title={<span id="writing-title">Notes from the field</span>}
-          intro={BLOG_INTRO}
         />
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {latest.map((p, i) => (
@@ -40,12 +39,21 @@ export function LatestWriting() {
             </Reveal>
           ))}
         </ul>
-        <Link
-          to="/blog"
-          className="mt-10 inline-flex items-center gap-1 text-[15px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
-        >
-          All posts <ArrowUpRight className="size-4" aria-hidden="true" />
-        </Link>
+        <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3">
+          {[
+            { to: "/blog", label: "All posts" },
+            { to: "/now", label: "What I'm up to now" },
+            { to: "/now#radio", label: "Tune in to my radio" },
+          ].map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              className="inline-flex items-center gap-1 text-[15px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
+            >
+              {l.label} <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   )

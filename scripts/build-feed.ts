@@ -40,6 +40,8 @@ ${p.tags.map((t) => `      <category>${esc(t)}</category>`).join("\n")}
 const urls = [
   { loc: `${SITE}/`, lastmod: posts[0]?.date },
   { loc: `${SITE}/blog`, lastmod: posts[0]?.date },
+  { loc: `${SITE}/now`, lastmod: undefined },
+  { loc: `${SITE}/uses`, lastmod: undefined },
   ...loadCaseStudies().map((c) => ({ loc: `${SITE}/work/${c.slug}`, lastmod: undefined })),
   ...posts.map((p) => ({ loc: `${SITE}/blog/${p.slug}`, lastmod: p.updated ?? p.date })),
   ...tags.map((t) => ({ loc: `${SITE}/blog/tags/${t}`, lastmod: posts.find((p) => p.tags.includes(t))?.date })),

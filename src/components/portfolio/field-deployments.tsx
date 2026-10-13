@@ -134,12 +134,11 @@ function CaseStudyCard({ item, index }: { item: CaseStudy; index: number }) {
   )
 }
 
-function Group({ title, intro, items }: { title: string; intro: string; items: CaseStudy[] }) {
+function Group({ title, items }: { title: string; items: CaseStudy[] }) {
   return (
     <div className="mt-16 first:mt-0">
       <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-ink/15 pb-4">
         <h3 className="font-display text-[26px] leading-tight text-ink">{title}</h3>
-        <p className="text-[15px] text-ink/65">{intro}</p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {items.map((d, i) => (
@@ -163,10 +162,9 @@ export function FieldDeployments() {
         <SectionHeading
           eyebrow="Case studies"
           title={<span id="deployments-title">Embedded with the team, accountable for the outcome</span>}
-          intro="The problem each system answers, what I built, and what it delivered."
         />
-        <Group title="Client deployments" intro="Shipped to production for real teams." items={client} />
-        <Group title="Independent builds" intro="Systems I designed and built on my own." items={independent} />
+        <Group title="Client deployments" items={client} />
+        <Group title="Independent builds" items={independent} />
       </div>
     </section>
   )

@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils"
 const links = [
   { to: "/", label: "Home" },
   { to: "/blog", label: "Blog" },
+  { to: "/now", label: "Now" },
+  { to: "/uses", label: "Uses" },
 ]
 
 /** The scroll chapters' nav bar, for pages outside the postcard: brand on the left, uppercase links on the right. */

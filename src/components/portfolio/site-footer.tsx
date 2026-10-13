@@ -35,9 +35,15 @@ export function SiteFooter() {
             <Mail className="size-4" aria-hidden="true" /> {resume.email}
           </a>
           <div className="flex gap-4">
-            <Link to="/blog" className="text-sm font-semibold text-ink underline-offset-4 hover:text-accent hover:underline">
-              Blog
-            </Link>
+            {[
+              { to: "/blog", label: "Blog" },
+              { to: "/now", label: "Now" },
+              { to: "/uses", label: "Uses" },
+            ].map((l) => (
+              <Link key={l.to} to={l.to} className="text-sm font-semibold text-ink underline-offset-4 hover:text-accent hover:underline">
+                {l.label}
+              </Link>
+            ))}
             {resume.links.filter((l) => l.url !== BOOKING_URL).map((l) => (
               <a
                 key={l.label}
