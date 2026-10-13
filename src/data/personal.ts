@@ -4,6 +4,8 @@ export const NOW_UPDATED = "2026-10-13"
 
 export type NowItem = { label: string; text: string; link?: { label: string; href: string } }
 
+export const LEETCODE_75 = "https://leetcode.com/studyplan/leetcode-75/"
+
 export const now: NowItem[] = [
   {
     label: "Building",
@@ -26,11 +28,17 @@ export const now: NowItem[] = [
   {
     label: "Listening to",
     text: "Jazz, hip hop, and a lot of Led Zeppelin and '70s and '80s rock.",
-    link: { label: "Tune in to my radio", href: "/now/listening" },
+    link: { label: "Tune in to my radio", href: "#radio" },
+  },
+  {
+    label: "Practising",
+    text: "Data structures and algorithms, working through the LeetCode 75 study plan.",
+    link: { label: "LeetCode 75", href: LEETCODE_75 },
   },
   {
     label: "Playing",
-    text: "Badminton, cricket and basketball. Basketball is the one I follow most.",
+    text: "Badminton, cricket and basketball. I follow badminton closely, and I'm a big Luka Dončić fan.",
+    link: { label: "Off the court", href: "#sports" },
   },
 ]
 

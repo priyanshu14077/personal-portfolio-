@@ -41,7 +41,6 @@ const urls = [
   { loc: `${SITE}/`, lastmod: posts[0]?.date },
   { loc: `${SITE}/blog`, lastmod: posts[0]?.date },
   { loc: `${SITE}/now`, lastmod: undefined },
-  { loc: `${SITE}/now/listening`, lastmod: undefined },
   { loc: `${SITE}/uses`, lastmod: undefined },
   ...loadCaseStudies().map((c) => ({ loc: `${SITE}/work/${c.slug}`, lastmod: undefined })),
   ...posts.map((p) => ({ loc: `${SITE}/blog/${p.slug}`, lastmod: p.updated ?? p.date })),

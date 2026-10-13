@@ -44,7 +44,7 @@ export function LatestWriting() {
           {[
             { to: "/blog", label: "All posts" },
             { to: "/now", label: "What I'm up to now" },
-            { to: "/now/listening", label: "Tune in to my radio" },
+            { to: "/now#radio", label: "Tune in to my radio" },
           ].map((l) => (
             <Link
               key={l.to}
