@@ -4,7 +4,18 @@ import { Play } from "lucide-react"
 import data from "@/data/sports.json"
 import { cn } from "@/lib/utils"
 
-type Media = { type: "photo" | "video"; id: number; src: string; thumb: string; alt: string; credit: string; creditUrl: string; url: string }
+type Media = {
+  type: "photo" | "video"
+  id: string
+  src: string
+  sources?: string[]
+  thumb: string
+  alt: string
+  credit: string
+  license: string
+  licenseUrl: string
+  url: string
+}
 type Sport = { id: string; name: string; note: string; media: Media[] }
 const gallery = data.sports as Sport[]
 
@@ -84,34 +95,14 @@ function Stubs() {
   )
 }
 
-/** A muted clip that only plays while it is on screen, and never under reduced motion. */
+/** Match footage: plays when the visitor presses play, from Commons' 480p transcode. */
 function Clip({ item }: { item: Media }) {
-  const ref = React.useRef<HTMLVideoElement>(null)
-  React.useEffect(() => {
-    const v = ref.current
-    if (!v) return
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    if (reduced) return
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) v.play().catch(() => {})
-      else v.pause()
-    }, { threshold: 0.4 })
-    io.observe(v)
-    return () => io.disconnect()
-  }, [item.src])
   return (
-    <video
-      key={item.src}
-      ref={ref}
-      src={item.src}
-      poster={item.thumb}
-      muted
-      loop
-      playsInline
-      preload="metadata"
-      aria-label={item.alt}
-      className="absolute inset-0 size-full object-cover"
-    />
+    <video key={item.src} poster={item.thumb} controls playsInline preload="none" aria-label={item.alt} className="absolute inset-0 size-full bg-night object-contain">
+      {(item.sources?.length ? item.sources : [item.src]).map((src) => (
+        <source key={src} src={src} type={src.endsWith(".mov") ? "video/mp4" : "video/webm"} />
+      ))}
+    </video>
   )
 }
 
@@ -154,17 +145,22 @@ export function Sports() {
             {item.type === "video" ? (
               <Clip item={item} />
             ) : (
-              <img key={item.src} src={item.src} alt={item.alt} className="absolute inset-0 size-full object-cover" />
+              <img key={item.src} src={item.src} alt={item.alt} referrerPolicy="no-referrer" className="absolute inset-0 size-full object-cover" />
             )}
           </div>
-          <figcaption className="mt-2 text-[13px] text-ink/60">
-            {item.type === "video" ? "Video" : "Photo"} by{" "}
-            <a href={item.creditUrl} target="_blank" rel="noreferrer" className="text-ink/80 underline-offset-4 hover:text-accent hover:underline">
-              {item.credit}
-            </a>{" "}
-            on{" "}
+          <figcaption className="mt-2 flex flex-wrap gap-x-1 text-[13px] text-ink/60">
+            <span className="truncate">{item.credit}</span>
+            <span aria-hidden="true">·</span>
+            {item.licenseUrl ? (
+              <a href={item.licenseUrl} target="_blank" rel="noreferrer" className="text-ink/80 underline-offset-4 hover:text-accent hover:underline">
+                {item.license}
+              </a>
+            ) : (
+              <span>{item.license}</span>
+            )}
+            <span aria-hidden="true">·</span>
             <a href={item.url} target="_blank" rel="noreferrer" className="text-ink/80 underline-offset-4 hover:text-accent hover:underline">
-              Pexels
+              Wikimedia Commons
             </a>
           </figcaption>
         </figure>
@@ -183,7 +179,7 @@ export function Sports() {
                 i === mediaIndex ? "border-accent" : "border-transparent opacity-75 hover:opacity-100",
               )}
             >
-              <img src={m.thumb} alt="" loading="lazy" className="size-full object-cover" />
+              <img src={m.thumb} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-full object-cover" />
               {m.type === "video" && (
                 <span className="absolute inset-0 flex items-center justify-center bg-night/30">
                   <Play className="size-5 fill-paper text-paper" aria-hidden="true" />
@@ -194,11 +190,28 @@ export function Sports() {
         ))}
       </ul>
 
-      <p className="mt-5 text-[13px] text-ink/60">
-        <a href="https://www.pexels.com" target="_blank" rel="noreferrer" className="underline-offset-4 hover:text-accent hover:underline">
-          Photos and videos from Pexels
-        </a>
-      </p>
+      <details className="mt-4 text-[13px] text-ink/60">
+        <summary className="cursor-pointer select-none">Credits</summary>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
+          {sport.media.map((m) => (
+            <li key={m.id}>
+              <a href={m.url} target="_blank" rel="noreferrer" className="underline-offset-4 hover:text-accent hover:underline">
+                {m.type === "video" ? "Video" : "Photo"}
+              </a>{" "}
+              by {m.credit},{" "}
+              {m.licenseUrl ? (
+                <a href={m.licenseUrl} target="_blank" rel="noreferrer" className="underline-offset-4 hover:text-accent hover:underline">
+                  {m.license}
+                </a>
+              ) : (
+                m.license
+              )}
+              , via Wikimedia Commons
+            </li>
+          ))}
+        </ol>
+      </details>
+
     </div>
   )
 }
