@@ -1,6 +1,7 @@
 import type { TornPostcardPortfolioProps } from "@/components/ui/torn-postcard-portfolio"
 
 export const GITHUB_USER = "priyanshu14077"
+export const BOOKING_URL = "https://cal.com/priyanshu-kumar-qvlmdx"
 
 export const resume = {
   name: "Priyanshu Kumar Singh",
@@ -114,6 +115,7 @@ export const resume = {
   ],
   email: "kumarpriyanshu20012@gmail.com",
   links: [
+    { label: "Book a call", url: BOOKING_URL },
     { label: "GitHub", url: `https://github.com/${GITHUB_USER}` },
     { label: "LinkedIn", url: "https://www.linkedin.com/in/priyanshu-kumar-singh14/" },
   ],
