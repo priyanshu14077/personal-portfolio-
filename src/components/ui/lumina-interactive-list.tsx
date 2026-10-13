@@ -38,6 +38,11 @@ export interface LuminaSlide {
   meta?: string
   tags?: string[]
   link?: { label: string; href: string }
+  /**
+   * A short muted loop that fades in over the image once the slide has settled.
+   * `media` stays the image the shader transitions to and from.
+   */
+  video?: string
   /** An in-site case study, shown as a second link. */
   caseStudy?: { label: string; href: string }
   /** Small caption in the corner, e.g. "Illustration". */
@@ -161,6 +166,8 @@ export function LuminaInteractiveList({
   const busy = React.useRef(false)
 
   const [active, setActive] = React.useState(0)
+  const [settled, setSettled] = React.useState(true) // no transition running, so a slide video may show
+  const videoRef = React.useRef<HTMLVideoElement>(null)
   const [ready, setReady] = React.useState(false) // textures loaded, canvas visible
   const [visible, setVisible] = React.useState(false)
   const [held, setHeld] = React.useState(false)
@@ -276,9 +283,11 @@ export function LuminaInteractiveList({
     (next: number) => {
       if (next === shown.current || busy.current) return
       setActive(next)
+      setSettled(false)
       const g = gl.current
       if (!g) {
         shown.current = next
+        setSettled(true)
         return
       }
       const from = g.textures[shown.current]
@@ -304,12 +313,26 @@ export function LuminaInteractiveList({
             u.uProgress.value = 0
             g.render()
             busy.current = false
+            setSettled(true)
           },
         },
       )
     },
     [reduced, transition],
   )
+
+  // A slide's video plays only while it is on screen, settled, and motion is allowed.
+  React.useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (settled && visible && !tabHidden && !reduced) {
+      v.play().catch(() => {
+        /* Autoplay refused: the still image stays visible underneath. */
+      })
+    } else {
+      v.pause()
+    }
+  }, [active, settled, visible, tabHidden, reduced])
 
   // Title and description re-enter whenever the slide changes.
   React.useLayoutEffect(() => {
@@ -356,6 +379,42 @@ export function LuminaInteractiveList({
         aria-hidden="true"
         className={cn("absolute inset-0 size-full transition-opacity duration-700", ready ? "opacity-100" : "opacity-0")}
       />
+      {/* A slide's video plays in a framed screen on the right, clear of the text column.
+          The still underneath dims and blurs so the two screens don't compete. */}
+      {slide.video && !reduced ? (
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 hidden bg-night/80 backdrop-blur-sm transition-opacity duration-700 lg:block",
+            settled ? "opacity-100" : "opacity-0",
+          )}
+        />
+      ) : null}
+      {slide.video && !reduced ? (
+        <div
+          key={slide.video}
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute top-1/2 right-[4%] z-[2] hidden w-[min(46%,44rem)] -translate-y-1/2 overflow-hidden rounded-md border border-paper/15 bg-deep shadow-[0_30px_60px_-24px_rgba(0,0,0,0.85)] transition-[opacity,scale] duration-700 ease-out lg:block",
+            settled ? "scale-100 opacity-100" : "scale-[0.97] opacity-0",
+          )}
+        >
+          <span className="flex h-7 items-center gap-1.5 bg-paper-dim px-3">
+            <i className="size-2 rounded-full bg-ink/20" />
+            <i className="size-2 rounded-full bg-ink/20" />
+            <i className="size-2 rounded-full bg-ink/20" />
+          </span>
+          <video
+            ref={videoRef}
+            src={slide.video}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="block aspect-video w-full bg-deep"
+          />
+        </div>
+      ) : null}
       {/* Shade the left (and, on phones, the bottom) so the text always reads. */}
       <div
         aria-hidden="true"

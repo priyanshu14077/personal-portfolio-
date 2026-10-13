@@ -9,6 +9,7 @@ export const projects: LuminaSlide[] = [
     description:
       "An AI software and expert marketplace. I led a team of five and built its agents on the native Anthropic SDK, including a RAG agent that cut research from three days to fifteen seconds.",
     media: "/projects/proploy.jpg",
+    video: "/videos/proploy-launch.mp4",
     tags: ["Anthropic SDK", "FastAPI", "Next.js", "Cloud Run"],
     link: { label: "Visit proploy.io", href: "https://proploy.io" },
     caseStudy: { label: "Read the case study", href: "/work/proploy" },

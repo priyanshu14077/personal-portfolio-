@@ -9,6 +9,7 @@ import { Mermaid } from "@/components/blog/mdx/mermaid"
 import { References } from "@/components/blog/mdx/references"
 import { Step, Steps } from "@/components/blog/mdx/steps"
 import { Tradeoffs } from "@/components/blog/mdx/tradeoffs"
+import { Video } from "@/components/blog/mdx/video"
 
 /** Everything a post can use without importing it. */
 export const mdxComponents: MDXComponents = {
@@ -23,6 +24,7 @@ export const mdxComponents: MDXComponents = {
   Steps,
   Step,
   Tradeoffs,
+  Video,
   TLDR,
   Takeaways,
   References,

@@ -45,6 +45,8 @@ export type CaseStudyMeta = {
   facts: { value: string; label: string }[]
   stack: string[]
   link?: { label: string; href: string }
+  /** A product video shown at the top of the case study. */
+  video?: { src: string; poster?: string; caption?: string }
   tldr?: string[]
   readingMinutes: number
   words: number
@@ -111,6 +113,17 @@ export function loadPosts(): PostMeta[] {
   return posts.sort((a, b) => b.date.localeCompare(a.date))
 }
 
+function readVideo(value: unknown): CaseStudyMeta["video"] {
+  if (!value || typeof value !== "object") return undefined
+  const v = value as Record<string, unknown>
+  if (!v.src) return undefined
+  return {
+    src: String(v.src),
+    poster: v.poster ? String(v.poster) : undefined,
+    caption: v.caption ? String(v.caption) : undefined,
+  }
+}
+
 /** Project case studies in content/case-studies, in file order. */
 export function loadCaseStudies(): CaseStudyMeta[] {
   return readdirSync(CASE_STUDY_DIR)
@@ -137,6 +150,7 @@ export function loadCaseStudies(): CaseStudyMeta[] {
           : [],
         stack: Array.isArray(fm.stack) ? fm.stack.map(String) : [],
         link: link?.href ? { label: String(link.label ?? "Visit the site"), href: String(link.href) } : undefined,
+        video: readVideo(fm.video),
         tldr: Array.isArray(fm.tldr) ? fm.tldr.map(String) : undefined,
         ...readingTime(body),
         file,

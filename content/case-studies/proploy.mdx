@@ -12,6 +12,10 @@ facts:
   - { value: "−40%", label: "infrastructure cost" }
 stack: ["Anthropic SDK", "FastAPI", "Next.js", "Postgres + pgvector", "Cloud Run"]
 link: { label: "Visit proploy.io", href: "https://proploy.io" }
+video:
+  src: /videos/proploy-launch.mp4
+  poster: /videos/proploy-launch-poster.jpg
+  caption: "Proploy in 30 seconds: from shortlisting software to an implementation brief and a buyer workspace."
 tldr:
   - "A Claude agent on the native Anthropic SDK that searches a curated software catalog, compares products and writes implementation briefs. Research that took about three days now takes about fifteen seconds."
   - "The gateway owns retrieval and the agent only reasons: the agent reaches the catalog through typed tools over internal HTTP, never through the database."

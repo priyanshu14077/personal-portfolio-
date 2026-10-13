@@ -6,6 +6,7 @@ import { Link, useParams } from "react-router"
 import { BlogPage } from "@/components/blog/blog-page"
 import { mdxComponents } from "@/components/blog/mdx"
 import { KeyPoints } from "@/components/blog/mdx/key-points"
+import { Video } from "@/components/blog/mdx/video"
 import { RelatedPosts } from "@/components/blog/post-nav"
 import { ReadingProgress } from "@/components/blog/reading-progress"
 import { TableOfContents } from "@/components/blog/table-of-contents"
@@ -76,7 +77,17 @@ function CaseStudy({ study }: { study: CaseStudyMeta }) {
       <ReadingProgress />
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="min-w-0">
-          {study.tldr && study.tldr.length > 0 && <KeyPoints variant="tldr" items={study.tldr} className="mt-0 max-w-[68ch]" />}
+          {study.video && (
+            <div className="-mt-9">
+              <Video
+                src={study.video.src}
+                poster={study.video.poster}
+                caption={study.video.caption}
+                label={`${study.title} product video`}
+              />
+            </div>
+          )}
+          {study.tldr && study.tldr.length > 0 && <KeyPoints variant="tldr" items={study.tldr} className="max-w-[68ch]" />}
           <article ref={articleRef} className="prose">
             <React.Suspense fallback={<p className="text-[16px] text-ink/50">Loading the case study…</p>}>
               <MDXProvider components={mdxComponents}>
