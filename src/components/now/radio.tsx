@@ -237,7 +237,7 @@ export function Radio() {
             <span className="ml-2 font-sans text-[16px] font-semibold tracking-[0.2em] text-tape">FM</span>
           </p>
           <p className="mt-2 text-[15px] font-medium text-tape">{station.genre}</p>
-          <p className="text-[14px] text-paper/60">“{station.name}”, from my playlists</p>
+          <p className="text-[14px] text-paper/60">{station.name}</p>
 
           <div className="mt-6 border-t border-dashed border-paper/20 pt-4" aria-live="polite">
             <p className="text-[12px] font-semibold tracking-[0.18em] text-paper/50 uppercase">Now playing</p>

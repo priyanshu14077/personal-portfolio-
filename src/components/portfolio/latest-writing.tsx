@@ -6,7 +6,7 @@ import { PostThumbnail } from "@/components/blog/post-thumbnail"
 import { CardLabel, CardTitle, FieldCard } from "@/components/portfolio/field-card"
 import { Reveal } from "@/components/portfolio/reveal"
 import { SectionHeading } from "@/components/portfolio/section-heading"
-import { BLOG_INTRO, posts } from "@/lib/blog"
+import { posts } from "@/lib/blog"
 
 /** The three newest posts, on the home page before the footer. */
 export function LatestWriting() {
@@ -19,7 +19,6 @@ export function LatestWriting() {
           tone="dark"
           eyebrow="Writing"
           title={<span id="writing-title">Notes from the field</span>}
-          intro={BLOG_INTRO}
         />
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {latest.map((p, i) => (

@@ -14,7 +14,6 @@ export default function NotFoundPage() {
           tone="dark"
           eyebrow="404"
           title="That page isn't here"
-          intro="The link may be old, or the post may have moved."
           className="mb-0"
         />
       }

@@ -32,7 +32,6 @@ export function Toolbelt() {
           tone="dark"
           eyebrow="Stack"
           title={<span id="toolbelt-title">What I bring into a team's stack</span>}
-          intro="Tools I've shipped to production, grouped by where they sit in a system."
         />
       </div>
       <div className="relative mb-16">

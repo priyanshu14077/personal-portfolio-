@@ -19,7 +19,6 @@ export default function BlogTagPage() {
           tone="dark"
           eyebrow="Blog · tag"
           title={label}
-          intro={`${list.length} ${list.length === 1 ? "post" : "posts"} tagged ${label}.`}
           className="mb-0"
         />
       }

@@ -2815,27 +2815,8 @@ I'd love to hear more about ` +
           "flex h-full items-start justify-between px-[clamp(16px,4cqw,44px)] pt-[clamp(10px,3cqh,30px)]",
         style: { color: k.ink },
         children: [
-          t.jsxs("button", {
-            type: "button",
-            className: "tpp-label flex items-center gap-3",
-            onClick: () => Z(1),
-            children: [
-              t.jsx("span", {
-                className: "tpp-hint",
-                "aria-hidden": "true",
-                children: "↓",
-              }),
-              t.jsxs("span", {
-                children: [
-                  "Keep scrolling",
-                  t.jsx("span", {
-                    className: "tpp-wide-i",
-                    children: " — the page tears open",
-                  }),
-                ],
-              }),
-            ],
-          }),
+          // Site edit: the "keep scrolling" hint is removed.
+          t.jsx("span", {}),
           t.jsxs("span", {
             className: "tpp-label tpp-wide",
             style: { opacity: 0.65 },
@@ -3233,15 +3214,6 @@ I'd love to hear more about ` +
             },
             children: t.jsx(Dt, { seed: 9 }),
           }),
-          t.jsxs("span", {
-            className: "tpp-label absolute",
-            style: {
-              right: "clamp(16px,4cqw,44px)",
-              top: "clamp(10px,3cqh,26px)",
-              color: "#e8e4da",
-            },
-            children: ["Next — ", m],
-          }),
         ],
       }),
     }),
@@ -3551,16 +3523,7 @@ I'd love to hear more about ` +
       lowerBg: t.jsx(vt, { uid: v, seed: 4, trees: !1, flakes: !1 }),
       lower: t.jsx("div", {
         className: "relative h-full",
-        children: t.jsxs("span", {
-          className: "tpp-label absolute",
-          style: {
-            left: "clamp(16px,4cqw,44px)",
-            top: "clamp(8px,2cqh,22px)",
-            color: "#e8e4da",
-            opacity: 0.8,
-          },
-          children: ["Next — ", L],
-        }),
+        children: null,
       }),
     }),
     jt = 100 / Math.max(1, Fe),
@@ -3741,16 +3704,7 @@ I'd love to hear more about ` +
       lowerBg: t.jsx(vt, { uid: v, seed: 6, trees: !1, flakes: !1 }),
       lower: t.jsx("div", {
         className: "relative h-full",
-        children: t.jsxs("span", {
-          className: "tpp-label absolute",
-          style: {
-            right: "clamp(16px,4cqw,44px)",
-            top: "clamp(8px,2cqh,22px)",
-            color: "#e8e4da",
-            opacity: 0.8,
-          },
-          children: ["Last stop — ", w],
-        }),
+        children: null,
       }),
     }),
     Je = t.jsx(NightScene, { uid: v, snow: U }),
@@ -3772,11 +3726,6 @@ I'd love to hear more about ` +
             className: "px-5 text-center",
             children: [
               t.jsx("h2", { className: "tpp-h tpp-sec-h", children: w }),
-              t.jsxs("p", {
-                className: "tpp-label mt-3",
-                style: { opacity: 0.6 },
-                children: ["It goes straight to ", u],
-              }),
             ],
           }),
           t.jsxs(W, {
@@ -3983,7 +3932,6 @@ I'd love to hear more about ` +
                   De,
                   " ",
                   r,
-                  " · made with paper, snow & patience",
                 ],
               }),
               t.jsx("button", {

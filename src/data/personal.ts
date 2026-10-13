@@ -48,7 +48,6 @@ export type ToolGroup = { title: string; intro?: string; tools: Tool[] }
 export const uses: ToolGroup[] = [
   {
     title: "How I work with AI",
-    intro: "The workflow matters more than the tools, so it comes first.",
     tools: [
       { name: "Claude Code", why: "Where most of my building happens. I plan the change with it, let it write the code, and review every diff before it lands." },
       { name: "Verify in a real browser", why: "Every UI change gets checked in a headless browser with Playwright, with screenshots, before I call it done." },

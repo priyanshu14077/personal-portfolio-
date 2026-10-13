@@ -42,7 +42,6 @@ function SeriesSection() {
         <h2 id="series-title" className="font-display text-[26px] leading-tight text-ink">
           Series
         </h2>
-        <p className="text-[15px] text-ink/65">Longer topics, in parts.</p>
       </div>
       <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {multi.map((s, i) => (
@@ -79,7 +78,6 @@ export default function BlogIndexPage() {
           eyebrow="Blog"
           title={BLOG_TITLE}
           intro={BLOG_INTRO}
-          note="written between deployments"
           className="mb-0"
         />
       }
@@ -96,7 +94,7 @@ export default function BlogIndexPage() {
               <Rss className="size-3.5" aria-hidden="true" /> RSS <ArrowUpRight className="size-3.5" aria-hidden="true" />
             </a>
           </div>
-          <PostList posts={rest} emptyText="More posts are on the way." />
+          {rest.length > 0 && <PostList posts={rest} />}
           <SeriesSection />
         </>
       ) : (

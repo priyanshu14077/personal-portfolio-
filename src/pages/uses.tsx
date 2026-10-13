@@ -13,7 +13,6 @@ export default function UsesPage() {
           tone="dark"
           eyebrow="Uses"
           title="What I build with"
-          intro="The tools on my machine, and the way I work with AI, which matters more than any of them."
           className="mb-0"
         />
       }

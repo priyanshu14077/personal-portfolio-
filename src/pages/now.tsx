@@ -24,14 +24,13 @@ function ItemLink({ link }: { link: NonNullable<NowItem["link"]> }) {
   return <a href={link.href} target="_blank" rel="noreferrer" className={linkClass}>{label}</a>
 }
 
-function Section({ id, title, intro, children }: { id: string; title: string; intro: string; children: React.ReactNode }) {
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="mt-20 scroll-mt-10">
       <div className="mb-8 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b border-ink/15 pb-4">
         <h2 id={`${id}-title`} className="font-display text-[26px] leading-tight text-ink">
           {title}
         </h2>
-        <p className="text-[15px] text-ink/65">{intro}</p>
       </div>
       {children}
     </section>
@@ -54,7 +53,6 @@ export default function NowPage() {
           tone="dark"
           eyebrow="Now"
           title="What I'm up to this month"
-          intro="A snapshot, not a résumé. If it's been a while since the date below, things have probably moved on."
           note={`updated ${formatDate(NOW_UPDATED)}`}
           className="mb-0"
         />
@@ -74,21 +72,14 @@ export default function NowPage() {
         ))}
       </ul>
 
-      <Section id="radio" title="On the radio" intro="My YouTube Music playlists, one station each. Nothing plays until you press play.">
+      <Section id="radio" title="On the radio">
         <Radio />
       </Section>
 
-      <Section id="sports" title="Off the court" intro="What I play, and who I watch.">
+      <Section id="sports" title="Off the court">
         <Sports />
       </Section>
 
-      <p className="mt-12 text-[14px] text-ink/60">
-        Inspired by the{" "}
-        <a href="https://nownownow.com/about" target="_blank" rel="noreferrer" className="text-accent underline-offset-4 hover:underline">
-          /now page movement
-        </a>
-        .
-      </p>
     </BlogPage>
   )
 }

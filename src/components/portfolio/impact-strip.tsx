@@ -29,7 +29,6 @@ export function ImpactStrip() {
         <SectionHeading
           eyebrow="Impact"
           title={<span id="impact-title">Results I've shipped to production</span>}
-          intro="Every number below came from a system I built and ran for a real team."
         />
         <ul className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
           {impact.map((item, i) => (
