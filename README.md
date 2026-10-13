@@ -33,7 +33,7 @@ Project case studies are MDX files in `content/case-studies/`, served at `/work/
 
 ## Blog Studio
 
-`npm run studio` starts a local tool for writing and scheduling posts with Claude. See `studio/README.md`.
+Posts can be drafted with [Blog Studio](../blog-studio), a separate local tool that lives next to this repository. Its settings for this site are in `blog-studio.toml` and `.blog-studio/`. With it checked out at `../blog-studio`, `npm run studio` opens it on this site.
 
 ## Deployment
 

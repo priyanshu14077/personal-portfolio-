@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "contributions": "./scripts/fetch-contributions.sh",
-    "studio": "uv run --project studio studio",
+    "studio": "uv run --project ../blog-studio blog-studio --site .",
     "radio": "node scripts/fetch-radio.mjs",
     "sports": "node scripts/fetch-sports.mjs"
   },
