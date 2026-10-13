@@ -23,6 +23,11 @@ export const tags: { tag: string; count: number }[] = Array.from(
   ([tag, count]) => ({ tag, count }),
 ).sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
 
+/** Posts written from a project's case study, newest first. */
+export function postsForProject(slug: string) {
+  return posts.filter((p) => p.project === slug)
+}
+
 export function postsByTag(tag: string) {
   return posts.filter((p) => p.tags.includes(tag))
 }

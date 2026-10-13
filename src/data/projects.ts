@@ -11,6 +11,7 @@ export const projects: LuminaSlide[] = [
     media: "/projects/proploy.jpg",
     tags: ["Anthropic SDK", "FastAPI", "Next.js", "Cloud Run"],
     link: { label: "Visit proploy.io", href: "https://proploy.io" },
+    caseStudy: { label: "Read the case study", href: "/work/proploy" },
   },
   {
     title: "Dunne",

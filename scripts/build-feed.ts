@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { loadPosts } from "./blog-content.ts"
+import { loadCaseStudies, loadPosts } from "./blog-content.ts"
 
 const SITE = process.env.SITE_URL ?? "https://priyanshukumarsingh.vercel.app"
 const OUT = fileURLToPath(new URL("../dist", import.meta.url))
@@ -40,6 +40,7 @@ ${p.tags.map((t) => `      <category>${esc(t)}</category>`).join("\n")}
 const urls = [
   { loc: `${SITE}/`, lastmod: posts[0]?.date },
   { loc: `${SITE}/blog`, lastmod: posts[0]?.date },
+  ...loadCaseStudies().map((c) => ({ loc: `${SITE}/work/${c.slug}`, lastmod: undefined })),
   ...posts.map((p) => ({ loc: `${SITE}/blog/${p.slug}`, lastmod: p.updated ?? p.date })),
   ...tags.map((t) => ({ loc: `${SITE}/blog/tags/${t}`, lastmod: posts.find((p) => p.tags.includes(t))?.date })),
 ]

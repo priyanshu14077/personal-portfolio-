@@ -13,6 +13,7 @@ import { SeriesBanner } from "@/components/blog/series-banner"
 import { TableOfContents } from "@/components/blog/table-of-contents"
 import { TagList } from "@/components/blog/tag-pill"
 import { lazyPost, neighbours, postBySlug, relatedTo, seriesOf, type PostMeta } from "@/lib/blog"
+import { caseStudyBySlug } from "@/lib/case-studies"
 import { useDocumentMeta } from "@/lib/use-document-meta"
 import NotFoundPage from "@/pages/not-found"
 
@@ -22,6 +23,7 @@ function Post({ post }: { post: PostMeta }) {
   const Body = lazyPost(post)
   const series = seriesOf(post)
   const multiPart = series && series.parts.length > 1
+  const project = caseStudyBySlug(post.project)
   const { older, newer } = neighbours(post)
   const related = relatedTo(post)
 
@@ -60,6 +62,14 @@ function Post({ post }: { post: PostMeta }) {
           )}
           {post.coverImage && (
             <img src={post.coverImage} alt="" className="mt-8 block w-full max-w-[68ch] rounded-md border border-ink/15 bg-paper-dim" />
+          )}
+          {project && (
+            <p className="mb-8 max-w-[68ch] rounded-md border border-ink/15 bg-paper-dim/60 px-5 py-4 text-[15px] leading-[1.55] text-ink/80">
+              From my work on {project.title}.{" "}
+              <Link to={`/work/${project.slug}`} className="font-semibold text-accent underline-offset-4 hover:underline">
+                Read the full case study
+              </Link>
+            </p>
           )}
           {post.tldr && post.tldr.length > 0 && <KeyPoints variant="tldr" items={post.tldr} className="max-w-[68ch]" />}
           <article ref={articleRef} className="prose">

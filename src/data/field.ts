@@ -27,6 +27,8 @@ export type CaseStudy = {
   facts: [Fact, Fact, Fact]
   stack: string[]
   link?: { label: string; href: string }
+  /** Path of the in-site case study, e.g. "/work/proploy". */
+  caseStudy?: string
   /** Featured builds span the full row and show real screenshots. */
   featured?: boolean
   screenshots?: { src: string; alt: string }[]
@@ -56,6 +58,7 @@ export const caseStudies: CaseStudy[] = [
     ],
     stack: ["Anthropic SDK", "FastAPI", "Next.js", "Cloud Run"],
     link: { label: "Visit proploy.io", href: "https://proploy.io" },
+    caseStudy: "/work/proploy",
   },
   {
     name: "Dunne",

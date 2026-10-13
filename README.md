@@ -29,6 +29,8 @@ Posts are MDX files in `content/blog/`. Copy `content/blog/_template.mdx`, fill 
 
 Inside a post you can use `<Callout>`, `<Figure>`, `<Mermaid>`, `<Steps>`/`<Step>`, `<Tradeoffs>`, `<Takeaways>` and `<References>` without importing them; fenced code blocks take a `title="file.ts"` and `{2,5-7}` line highlights. Set `SITE_URL` at build time so the feed carries the deployed origin.
 
+Project case studies are MDX files in `content/case-studies/`, served at `/work/<slug>`. Link one from a project with `caseStudy` in `src/data/projects.ts` or `src/data/field.ts`, and add `project: <slug>` to a post's frontmatter to cross-link them.
+
 ## Deployment
 
 `vercel.json` limits automatic deployments to the `master` branch; pushes to other branches do not deploy. Merge to `master` to release.

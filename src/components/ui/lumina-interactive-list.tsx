@@ -24,6 +24,9 @@ import {
   type Texture,
 } from "three"
 
+import { ArrowUpRight } from "lucide-react"
+import { Link } from "react-router"
+
 import { cn } from "@/lib/utils"
 
 export interface LuminaSlide {
@@ -35,6 +38,8 @@ export interface LuminaSlide {
   meta?: string
   tags?: string[]
   link?: { label: string; href: string }
+  /** An in-site case study, shown as a second link. */
+  caseStudy?: { label: string; href: string }
   /** Small caption in the corner, e.g. "Illustration". */
   caption?: string
 }
@@ -385,16 +390,26 @@ export function LuminaInteractiveList({
                 ))}
               </ul>
             ) : null}
-            {slide.link ? (
-              <a
-                href={slide.link.href}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-7 inline-flex items-center gap-2 rounded-full bg-paper px-5 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-accent hover:text-paper"
-              >
-                {slide.link.label}
-              </a>
-            ) : null}
+            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-3">
+              {slide.link ? (
+                <a
+                  href={slide.link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-paper px-5 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-accent hover:text-paper"
+                >
+                  {slide.link.label}
+                </a>
+              ) : null}
+              {slide.caseStudy ? (
+                <Link
+                  to={slide.caseStudy.href}
+                  className="inline-flex items-center gap-1 text-[14px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
+                >
+                  {slide.caseStudy.label} <ArrowUpRight className="size-4" aria-hidden="true" />
+                </Link>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ const HomePage = lazy(() => import("@/pages/home"))
 const BlogIndexPage = lazy(() => import("@/pages/blog-index"))
 const BlogTagPage = lazy(() => import("@/pages/blog-tag"))
 const BlogPostPage = lazy(() => import("@/pages/blog-post"))
+const CaseStudyPage = lazy(() => import("@/pages/case-study"))
 const NotFoundPage = lazy(() => import("@/pages/not-found"))
 
 /** Starts every new page at the top; in-page hash links keep their target. */
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/blog" element={<BlogIndexPage />} />
           <Route path="/blog/tags/:tag" element={<BlogTagPage />} />
           <Route path="/blog/:slug" element={<BlogPostPage />} />
+          <Route path="/work/:slug" element={<CaseStudyPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

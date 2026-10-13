@@ -21,6 +21,8 @@ export type PostMeta = {
   coverImage?: string
   /** Two to four key points shown at the top of the post. */
   tldr?: string[]
+  /** Slug of a case study this post comes from, e.g. "proploy". */
+  project?: string
   draft: boolean
   readingMinutes: number
   words: number
@@ -29,6 +31,25 @@ export type PostMeta = {
 }
 
 export const CONTENT_DIR = fileURLToPath(new URL("../content/blog", import.meta.url))
+export const CASE_STUDY_DIR = fileURLToPath(new URL("../content/case-studies", import.meta.url))
+
+export type CaseStudyMeta = {
+  title: string
+  subtitle?: string
+  slug: string
+  summary: string
+  /** Short label above the title, e.g. "AI procurement". */
+  category: string
+  role: string
+  period: string
+  facts: { value: string; label: string }[]
+  stack: string[]
+  link?: { label: string; href: string }
+  tldr?: string[]
+  readingMinutes: number
+  words: number
+  file: string
+}
 
 const WORDS_PER_MINUTE = 220
 
@@ -70,6 +91,7 @@ function readPost(file: string): PostMeta {
     summary: String(fm.summary),
     coverImage: fm.coverImage ? String(fm.coverImage) : undefined,
     tldr: Array.isArray(fm.tldr) ? fm.tldr.map(String) : undefined,
+    project: fm.project ? String(fm.project) : undefined,
     draft: fm.draft === true,
     ...readingTime(body),
     file,
@@ -87,4 +109,37 @@ export function loadPosts(): PostMeta[] {
     slugs.add(p.slug)
   }
   return posts.sort((a, b) => b.date.localeCompare(a.date))
+}
+
+/** Project case studies in content/case-studies, in file order. */
+export function loadCaseStudies(): CaseStudyMeta[] {
+  return readdirSync(CASE_STUDY_DIR)
+    .filter((f) => f.endsWith(".mdx") && !f.startsWith("_"))
+    .sort()
+    .map((f) => {
+      const file = path.join(CASE_STUDY_DIR, f)
+      const { frontmatter: fm, body } = splitFrontmatter(readFileSync(file, "utf8"))
+      const name = path.basename(f, ".mdx")
+      for (const key of ["title", "summary", "category", "role", "period"]) {
+        if (!fm[key]) throw new Error(`${name}.mdx: frontmatter is missing "${key}"`)
+      }
+      const link = fm.link as { label?: unknown; href?: unknown } | undefined
+      return {
+        title: String(fm.title),
+        subtitle: fm.subtitle ? String(fm.subtitle) : undefined,
+        slug: fm.slug ? String(fm.slug) : name,
+        summary: String(fm.summary),
+        category: String(fm.category),
+        role: String(fm.role),
+        period: String(fm.period),
+        facts: Array.isArray(fm.facts)
+          ? fm.facts.map((x: { value: unknown; label: unknown }) => ({ value: String(x.value), label: String(x.label) }))
+          : [],
+        stack: Array.isArray(fm.stack) ? fm.stack.map(String) : [],
+        link: link?.href ? { label: String(link.label ?? "Visit the site"), href: String(link.href) } : undefined,
+        tldr: Array.isArray(fm.tldr) ? fm.tldr.map(String) : undefined,
+        ...readingTime(body),
+        file,
+      }
+    })
 }

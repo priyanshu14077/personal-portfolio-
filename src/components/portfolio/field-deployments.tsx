@@ -1,4 +1,5 @@
 import { ArrowUpRight, CheckCircle2 } from "lucide-react"
+import { Link } from "react-router"
 
 import { CardLabel, CardTitle, FieldCard } from "@/components/portfolio/field-card"
 import { Reveal } from "@/components/portfolio/reveal"
@@ -48,6 +49,15 @@ function CaseStudyBody({ item }: { item: CaseStudy }) {
               </li>
             ))}
           </ul>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {item.caseStudy && (
+            <Link
+              to={item.caseStudy}
+              className="inline-flex items-center gap-1 text-[14px] font-semibold text-ink underline-offset-4 hover:text-accent hover:underline"
+            >
+              Case study <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Link>
+          )}
           {item.link ? (
             <a
               href={item.link.href}
@@ -60,6 +70,7 @@ function CaseStudyBody({ item }: { item: CaseStudy }) {
           ) : (
             <span className="text-[13px] text-ink/50">Code on request</span>
           )}
+          </div>
         </div>
       </div>
     </>

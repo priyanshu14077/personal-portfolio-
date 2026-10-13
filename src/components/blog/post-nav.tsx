@@ -36,12 +36,12 @@ export function PostNav({ older, newer }: { older?: PostMeta; newer?: PostMeta }
   )
 }
 
-export function RelatedPosts({ posts }: { posts: PostMeta[] }) {
+export function RelatedPosts({ posts, title = "Related posts" }: { posts: PostMeta[]; title?: string }) {
   if (posts.length === 0) return null
   return (
     <section aria-labelledby="related-title">
       <h2 id="related-title" className="font-display text-[26px] leading-tight text-ink">
-        Related posts
+        {title}
       </h2>
       <ul className="mt-6 grid gap-6 md:grid-cols-3">
         {posts.map((p, i) => (
