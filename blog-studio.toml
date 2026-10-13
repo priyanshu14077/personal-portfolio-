@@ -1,0 +1,31 @@
+# Blog Studio settings for this site. The Studio lives in its own repository (../blog-studio).
+name = "Field notes"
+author = "Priyanshu Kumar Singh"
+site_url = "https://priyanshukumarsingh.vercel.app"
+preview_url = "http://localhost:5173/blog/{slug}"
+
+[paths]
+posts = "content/blog"
+thumbnails = "public/blog"
+thumbnail_url = "/blog/{slug}/thumbnail.svg"
+style_reference = "content/blog/designing-a-url-shortener.mdx"
+
+[prompts]
+voice = ".blog-studio/voice.md"
+components = ".blog-studio/components.md"
+
+[mdx]
+# Registered in src/components/blog/mdx/index.tsx
+components = ["Callout", "Figure", "Mermaid", "Steps", "Step", "Tradeoffs", "TLDR", "Takeaways", "References", "Video"]
+
+[git]
+protected_branches = ["main", "master"]
+
+# The site's palette, from src/index.css
+[theme]
+background = "#14213a"
+box = "#24375a"
+text = "#f2ede2"
+box_light = "#e6dfcf"
+accent = "#b4673d"
+secondary = "#a9c1d6"
