@@ -1,0 +1,82 @@
+---
+# Copy this file to content/blog/<slug>.mdx. Files starting with "_" are never published.
+title: "Designing a <system>"
+subtitle: "One line that says why this matters."
+slug: designing-a-system
+date: 2026-01-01
+# updated: 2026-01-15
+tags: [system-design, distributed-systems]
+# series: "System Design 101"
+# seriesOrder: 2
+summary: "Two sentences for the card, the meta description and the feed."
+# coverImage: /blog/<slug>/cover.jpg
+# thumbnail: /blog/<slug>/thumbnail.svg   (diagram shown on lists and cards)
+tldr:
+  - "The one-sentence answer."
+  - "The main trade-off and which side you landed on."
+  - "The number that justifies the design."
+draft: true
+---
+
+## The problem, and why it matters
+
+Who has the problem, what it costs them today, and what "solved" looks like.
+
+## Requirements
+
+**Functional**
+
+- What the system must do.
+
+**Non-functional**
+
+- Latency, availability, consistency, cost.
+
+## Back-of-the-envelope estimates
+
+| Figure | Value | Working |
+| --- | --- | --- |
+| Writes / day | | |
+| Reads / day | | |
+| Storage / year | | |
+
+## High-level design
+
+<Figure caption="The main components and how requests flow between them.">
+  <Mermaid chart={`
+graph LR
+  C[Client] --> A[API]
+  A --> D[(Store)]
+`} />
+</Figure>
+
+<Callout type="note">An aside the reader can skip.</Callout>
+
+## Deep dive
+
+### The part that is actually hard
+
+<Tradeoffs title="Option A vs option B" pros={["Why A"]} cons={["Why not A"]} />
+
+```ts title="example.ts" {2}
+const a = 1
+const b = 2
+```
+
+<Steps>
+  <Step title="First">What happens first.</Step>
+  <Step title="Then">What happens next.</Step>
+</Steps>
+
+## What I'd do differently
+
+The takeaways box below becomes its own heading in the table of contents.
+
+<Takeaways>
+- The thing to remember.
+- The second thing to remember.
+</Takeaways>
+
+<References>
+- [Title](https://example.com), who wrote it and why it is worth the time.
+</References>

@@ -1,0 +1,362 @@
+---
+title: Streaming AI agent responses across three services
+subtitle: How tokens and tool events travel from an agent to the browser without stalling, dropping or duplicating.
+slug: streaming-ai-agent-responses-across-three-services
+date: 2026-10-13
+tags:
+- ai
+- distributed-systems
+- system-design
+thumbnail: /blog/streaming-ai-agent-responses-across-three-services/thumbnail.svg
+summary: 'Streaming an agent''s output through more than one service is harder than streaming from a single model call. This post walks through the design: one event contract, backpressure, resumable streams and the failure modes that show up in production.'
+tldr:
+- Define one event contract for the whole path, so each hop forwards events instead of reinterpreting them.
+- Stream agent events, not just text tokens, because tool calls, status updates and errors matter to the client.
+- Give every event a sequence number so clients can resume after a dropped connection without duplicates.
+- Persist the final result separately from the live stream, so a failed stream never loses the answer.
+draft: false
+---
+
+## The problem and why it matters
+
+Streaming one model call to a browser is a solved problem. You read tokens from the provider and write them to an HTTP response.
+
+An agent is different. It calls tools, runs for tens of seconds or minutes, and usually lives behind more than one service. Each service boundary adds a buffer, a timeout and a new way to lose an event.
+
+This post uses a three-service split. It is a generic layout, so map it onto your own system:
+
+- **Agent service.** Runs the agent loop, calls the model and the tools, and produces events.
+- **Middle layer.** Handles authentication, authorisation, routing and quotas. It sits between the agent service and everything else.
+- **Client-facing service.** Holds the browser connections and delivers events to the UI.
+
+Users judge an agent by time to first visible output, not by total run time. A run that takes 40 seconds but shows "searching the knowledge base" after one second feels fast. A run that takes 20 seconds of silence feels broken.
+
+<Callout type="insight" title="The hard part is the hops">
+  Each hop can buffer, reorder on retry, time out an idle connection, or restart during a deploy. A stream that works in a demo with one process usually fails in production at one of these joins, not in the model call.
+</Callout>
+
+## Requirements
+
+**Functional**
+
+- Show partial text, tool progress and errors as they happen.
+- Let a client reconnect and continue from where it stopped.
+- Let the user cancel a run, and make the cancel reach the agent so work and cost stop.
+
+**Non-functional**
+
+- Low added latency per hop. A relay should forward, not think.
+- Ordered delivery with no duplicate events visible to the user.
+- The final answer is stored even if nobody is listening when the run ends.
+
+**Out of scope:** choice of model and prompt design. The design below works the same whichever model sits behind the agent.
+
+## Back-of-the-envelope estimates
+
+<Callout type="note" title="These are assumptions, not measurements">
+  The figures below are illustrative numbers chosen to show the method. Replace them with your own concurrency and event rates before sizing anything.
+</Callout>
+
+Assume 2,000 concurrent runs, an average of 20 events per second per run, and about 150 bytes per event on the wire. Assume runs last about 60 seconds on average.
+
+| Figure | Value (est.) | Working |
+| --- | --- | --- |
+| Open streams per hop | ~2,000 | One per concurrent run |
+| Events per second, total | ~40,000 | 2,000 × 20 |
+| Bandwidth, total | ~6 MB/s | 40,000 × 150 B |
+| Memory per connection | ~50 KB | Socket buffers plus a bounded event buffer |
+| Connection memory per hop | ~100 MB | 2,000 × 50 KB |
+| Event log per run | ~180 KB | 60 s × 20 events × 150 B |
+| Event log, all live runs | ~360 MB | 2,000 × 180 KB |
+
+Three things fall out of the table:
+
+1. **Bandwidth is not the problem.** 6 MB/s is trivial for any one hop.
+2. **Connection count is the problem.** Every hop holds as many mostly idle connections as there are live runs. Pick servers and proxies that handle many idle connections cheaply.
+3. **Per-event overhead matters more than bytes.** 40,000 events a second means 40,000 parses and writes a second per hop. A relay that deserialises, rewrites and reserialises every event wastes CPU for nothing.
+
+## High-level design
+
+Events flow in one direction through the live path. A separate durable path stores the finished run.
+
+<Figure caption="The live path streams events hop by hop. The durable path writes the finished run to storage, so the answer survives a lost stream.">
+  <Mermaid label="Live streaming path and durable path across three services and the browser" chart={`
+flowchart LR
+  A["Agent service"] -->|"internal stream<br/>envelope v1"| M["Middle layer<br/>auth and routing"]
+  M -->|"internal stream<br/>envelope v1"| E["Client-facing<br/>service"]
+  E -->|"server-sent events<br/>envelope v1"| B["Browser"]
+  A -->|"append events"| L[("Event log<br/>short TTL")]
+  A -->|"write on done"| S[("Run store<br/>durable")]
+  B -.->|"fetch result by run id"| E
+  E -.->|"read"| S
+  B -->|"cancel"| E
+  E -->|"cancel"| M
+  M -->|"cancel"| A
+`} />
+</Figure>
+
+### Transport per hop
+
+Between services, use whatever streaming protocol you already operate well. A bidirectional RPC stream or a long-lived HTTP response both work. Between the client-facing service and the browser, server-sent events (SSE) are usually enough.
+
+<Tradeoffs
+  title="Server-sent events vs WebSockets for the browser hop"
+  pros={[
+    "SSE is plain HTTP, so it passes through most proxies, authentication layers and observability tooling unchanged",
+    "The browser reconnects automatically and sends the last event id it saw, which maps directly onto resumable streams",
+    "One-way delivery is all an agent response needs; cancel is a separate request",
+  ]}
+  cons={[
+    "SSE is one-way, so cancel and any client input need their own HTTP calls",
+    "The browser EventSource API cannot set custom headers, so authentication needs cookies or a short-lived token in the URL",
+    "WebSockets would give one bidirectional channel, but you take on your own reconnect, framing and resume logic",
+  ]}
+/>
+
+### The event envelope
+
+Every hop speaks the same envelope. It has a version, a run id, a sequence number, a type and a payload.
+
+```ts title="event-envelope.ts" {9}
+type EventType =
+  | "text_delta"
+  | "tool_start"
+  | "tool_result"
+  | "status"
+  | "error"
+  | "done"
+
+interface AgentEvent {
+  v: 1                 // envelope version
+  runId: string
+  seq: number          // assigned once, by the agent service
+  type: EventType
+  payload: unknown     // shape depends on type
+}
+```
+
+The event types cover what the client needs to render a run:
+
+- `text_delta`: a chunk of answer text.
+- `tool_start` and `tool_result`: progress the UI can show as "searching" or "running a query".
+- `status`: free-form progress, and the carrier for heartbeats from the agent.
+- `error`: a failure the user should see.
+- `done`: the terminal event, with a status of completed, failed or cancelled.
+
+Streaming only text deltas is the common mistake. The client then cannot tell a slow tool from a stall, and errors arrive as truncated text.
+
+## Deep dives
+
+### One event contract across services
+
+A relay should forward events untouched. It checks authorisation for the run, applies quotas and passes the bytes on. It does not rename fields, merge events or renumber them.
+
+The reason is that each translation is a place for bugs. Two services that disagree on what `tool_result` means will pass tests individually and fail together. If the middle layer only forwards, the contract has exactly two interpreters: the producer and the final consumer.
+
+The `v` field lets services deploy independently. Rules that keep this safe:
+
+- Adding an optional payload field is not a version bump.
+- Adding a new event type is allowed, as long as consumers ignore types they do not know.
+- Removing or changing the meaning of a field is a new version, and relays pass through any version they can parse the header of.
+
+<Tradeoffs
+  title="Strict shared contract"
+  pros={[
+    "No hop-by-hop translation, so a whole class of mismatch bugs disappears",
+    "Relays stay cheap and stateless, which matters at tens of thousands of events a second",
+    "Tracing is simple because the run id and sequence number never change in flight",
+  ]}
+  cons={[
+    "Ad hoc changes need a contract change and a coordinated rollout",
+    "Consumers must ignore unknown types, which needs discipline and a test that proves it",
+  ]}
+/>
+
+### Backpressure and buffering
+
+Sooner or later the client is slower than the agent. A phone on a poor connection reads slower than a model writes.
+
+Without a bound, the slow client's backlog grows in memory on some hop until that process falls over. So give every stream a bounded buffer. In the estimates above, 256 events at about 150 bytes is roughly 38 KB per stream.
+
+When the buffer fills, there are three options:
+
+1. **Slow the producer.** Stop reading from the upstream socket and let TCP flow control push back. This is right between services, because the agent can wait.
+2. **Coalesce text deltas.** Merge buffered `text_delta` events into one larger event. The text is intact and the event count drops. Never coalesce or drop `tool_*`, `error` or `done` events.
+3. **Close the stream and let the client resume.** If the buffer stays full, close the connection. The client reconnects from its last sequence number and reads from the log at its own pace.
+
+Prefer option 3 for the browser hop. It needs no special slow-client path, because resumable streams (below) already provide one.
+
+#### Intermediary buffering
+
+The silent killer is buffering you did not ask for. Reverse proxies and load balancers often buffer responses by default, which turns a stream into bursts or into nothing until the response ends. Check every box on the path:
+
+- Turn off response buffering for the streaming route in each proxy. For nginx this is the `proxy_buffering` directive.
+- Send `Cache-Control: no-cache` and a content type of `text/event-stream`.
+- Disable response compression for the streaming route, or flush after each event. Many compressors hold bytes back until a block fills.
+- Test through the real production path, not against the service directly. A stream that is smooth on localhost and stalled in production is almost always an intermediary.
+
+### Resumable streams
+
+Connections drop. Mobile networks switch, laptops sleep, load balancers recycle connections. Without resume, every drop loses the rest of the answer or forces a full re-run.
+
+The design is small:
+
+- The agent service assigns a strictly increasing `seq` to each event of a run.
+- It appends each event to a per-run log in a shared store with a short expiry.
+- A reconnecting client sends the last `seq` it processed. The stream replays everything after it from the log, then continues live.
+
+<Figure caption="After the drop, the browser reconnects with the last sequence number it saw. Events 8 to 10 come from the log, and event 11 onwards is live.">
+  <Mermaid label="Sequence diagram of a dropped connection and resume" chart={`
+sequenceDiagram
+  participant B as Browser
+  participant E as Client-facing service
+  participant A as Agent service
+  participant L as Event log
+  A->>L: append seq 1..7
+  A-->>E: events 1..7
+  E-->>B: events 1..7
+  Note over B,E: connection drops
+  A->>L: append seq 8..10
+  B->>E: reconnect, Last-Event-ID 7
+  E->>L: read after 7
+  L-->>E: events 8..10
+  E-->>B: events 8..10
+  A-->>E: live event 11
+  E-->>B: event 11
+`} />
+</Figure>
+
+With SSE, put the sequence number in the `id` field. The browser sends it back as the `Last-Event-ID` header on reconnect without any extra client code.
+
+Replay can overlap with live events, so the client must be idempotent. It tracks the last sequence number and drops anything at or below it. If it sees a gap, it reconnects instead of rendering out of order.
+
+```ts title="client-stream.ts"
+let lastSeq = 0
+
+function onEvent(e: AgentEvent, reconnect: () => void) {
+  if (e.seq <= lastSeq) return          // duplicate from replay overlap
+  if (e.seq > lastSeq + 1) return reconnect() // gap: ask again from lastSeq
+  lastSeq = e.seq
+  render(e)
+}
+```
+
+<Tradeoffs
+  title="Short-lived event log"
+  pros={[
+    "Any dropped client resumes without re-running the agent, which saves cost and time",
+    "Doubles as the slow-client escape hatch from the backpressure section",
+    "Lets any instance of the client-facing service serve a resume, so routing need not be sticky",
+  ]}
+  cons={[
+    "It costs memory or storage: about 360 MB for all live runs in the estimates above",
+    "It needs an expiry policy. Keep events for a few minutes after the run ends, then rely on the durable run store",
+    "It is another stateful component that must be available when streams are most fragile",
+  ]}
+/>
+
+### Cancellation and timeouts
+
+Cancel has to travel against the stream. If the user closes the tab or presses stop, the agent should stop calling the model and the tools. Otherwise you pay for answers nobody will read.
+
+<Steps>
+  <Step title="Browser sends a cancel request">
+    A separate HTTP call with the run id. Closing the SSE connection alone is not a cancel, because the user may only be reconnecting.
+  </Step>
+  <Step title="Each hop forwards it">
+    The client-facing service and the middle layer check authorisation and pass the cancel upstream. It is cheap, so no hop needs to hold state for it.
+  </Step>
+  <Step title="The agent aborts its work">
+    The agent signals abort to the model call and to any tool call that supports it. Tools that cannot be aborted are allowed to finish, but their results are discarded.
+  </Step>
+  <Step title="A terminal event closes the run">
+    The agent emits `done` with a cancelled status. The client sees the same ending as any other run.
+  </Step>
+</Steps>
+
+Also decide what an unattended disconnect means. A common policy is to let the run continue for a grace period, so a resume works, and cancel it if nobody returns.
+
+#### Heartbeats and slow tools
+
+Idle connections are cut by intermediaries. Send a heartbeat on every hop at an interval below the shortest idle timeout on the path. On the browser hop, an SSE comment line (starting with a colon) does this and is ignored by the client. About every 15 seconds is a common choice.
+
+Heartbeats also let you tell two situations apart:
+
+- **Slow tool call.** Heartbeats and `status` events keep arriving, but no `tool_result`. Apply a per-tool timeout and surface an `error` if it expires.
+- **Dead connection.** Nothing arrives, not even heartbeats. Close it and reconnect.
+
+Without separate heartbeats, a three-minute tool call looks identical to a dead hop, and you end up with one timeout that is too short for the first and too long for the second.
+
+## Scaling and failure
+
+**Connections.** Long-lived connections cost memory and file descriptors, not CPU. Set connection limits per instance, scale on open streams rather than request rate, and keep per-stream buffers bounded.
+
+**Routing.** There are two ways to let a reconnect find its stream.
+
+<Tradeoffs
+  title="Sticky routing vs a shared event log"
+  pros={[
+    "Sticky routing is simple and needs no extra store, if the stream state lives in one process",
+    "A shared log lets any instance serve any resume, so deploys and crashes cost no stream state",
+  ]}
+  cons={[
+    "Sticky routing loses the stream when that instance dies or restarts",
+    "A shared log adds a stateful dependency and a write per event",
+  ]}
+/>
+
+The shared log is the safer default for production, because deploys happen daily and crashes happen at the worst time.
+
+**Graceful deploys.** Draining is the slow part. On shutdown, stop accepting new runs, tell clients to reconnect (SSE has a `retry` field for the delay), and close streams after their current event. Clients resume from the log on another instance. Set the drain deadline longer than the p99 run, or accept that some runs resume rather than finish in place.
+
+### Failure cases
+
+| Failure | What the user sees | What saves the run |
+| --- | --- | --- |
+| Agent crashes mid-run | Stream stops, no `done` | Heartbeats stop, the hop closes, the run is marked failed, and the client shows the partial text with an error |
+| Middle layer restarts | Stream drops | Client resumes from its last sequence number via another instance |
+| Client disconnects | Nothing | The run continues for a grace period, and the final result is stored either way |
+| Partial tool result | A `tool_start` with no `tool_result` | The tool timeout emits an `error` event; the agent decides whether to retry or continue |
+| Event log unavailable | Resume fails | Fall back to fetching the stored result by run id |
+
+### The stored result is the source of truth
+
+The stream is a view of the run, not the run itself. The agent service writes the finished run to a durable store when it completes, whether or not any client is connected. If a stream is lost for good, or the log has expired, the client fetches the result by run id.
+
+Write the final result before emitting `done`. If you emit `done` first and the write fails, the client believes the run finished and then cannot find the answer.
+
+### What to monitor
+
+- **Time to first event**, from the request arriving to the first event reaching the browser. This is the user-visible latency.
+- **Stream drop rate**, meaning connections closed before `done`.
+- **Resume rate and resume success rate.** A rising resume rate is an early sign of a proxy or deploy problem.
+- **Duplicate and gap counts** seen by clients. In a healthy system gaps are zero and duplicates are rare.
+- **Buffer overflows** per hop, which show where slow clients or slow hops are.
+
+Put the run id in every log line and trace span on all three services. Without it, you cannot follow one run across the path.
+
+## What I would do differently
+
+These are themes to apply if you are starting from scratch, not a record of a particular project.
+
+- **Define the event contract and sequence numbers first.** Adding sequence numbers after the first incident means changing every producer, relay and client at once. Adding them on day one costs a counter.
+- **Add stream-level tracing early.** A run id that crosses all three services makes "which hop dropped it" a ten-minute question instead of a day.
+- **Load test with slow clients.** Fast clients prove that the happy path works. Slow clients, flaky connections and mid-run reconnects are what exercise buffers, the log and the drain logic.
+- **Test through the real proxy path.** A staging environment without the production proxy chain hides the buffering problems described above.
+
+<Takeaways>
+- Define one event envelope for the whole path and have relays forward events untouched, so each hop does not reinterpret them.
+- Stream agent events, not just text. Tool progress, status, errors and a terminal `done` event are what let a client behave sensibly.
+- Assign a sequence number once, at the producer, and keep a short-lived event log. Clients resume with the last number and drop duplicates.
+- Bound every buffer. When a client cannot keep up, close the stream and let it resume rather than growing memory.
+- Check every proxy for response buffering and compression. It is the most common reason a working stream stalls in production.
+- Send cancel as its own request and forward it to the agent, so cost stops when the user stops.
+- Store the final result separately and write it before emitting `done`. The stream is a view; the stored run is the truth.
+</Takeaways>
+
+<References>
+- [HTML Standard: Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html), the definition of the event stream format, `id`, `retry` and `Last-Event-ID` behaviour.
+- [RFC 6455: The WebSocket Protocol](https://www.rfc-editor.org/rfc/rfc6455), for the alternative browser transport and what you take on by choosing it.
+- [nginx: ngx_http_proxy_module, proxy_buffering](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_buffering), the setting that most often breaks streaming behind a reverse proxy.
+- [gRPC core concepts](https://grpc.io/docs/what-is-grpc/core-concepts/), an overview of server-streaming and bidirectional streaming RPCs for the service-to-service hops.
+</References>

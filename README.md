@@ -23,6 +23,18 @@ npm run build      # production build in dist/
 - Scroll-chapter copy lives in `src/data/resume.ts`; the sections below it read from `src/data/field.ts`.
 - GitHub contribution data lives in `src/data/contributions.json`. Refresh it with `npm run contributions` (requires the GitHub CLI, logged in).
 
+## Blog
+
+Posts are MDX files in `content/blog/`. Copy `content/blog/_template.mdx`, fill in the frontmatter, and drop `draft: true` to publish. Reading time, the index at `/blog`, tag pages at `/blog/tags/<tag>`, series banners, related posts, `rss.xml` and `sitemap.xml` all come from the frontmatter at build time. Drafts show in `npm run dev` and are hidden in production.
+
+Inside a post you can use `<Callout>`, `<Figure>`, `<Mermaid>`, `<Steps>`/`<Step>`, `<Tradeoffs>`, `<Takeaways>` and `<References>` without importing them; fenced code blocks take a `title="file.ts"` and `{2,5-7}` line highlights. Set `SITE_URL` at build time so the feed carries the deployed origin.
+
+Project case studies are MDX files in `content/case-studies/`, served at `/work/<slug>`. Link one from a project with `caseStudy` in `src/data/projects.ts` or `src/data/field.ts`, and add `project: <slug>` to a post's frontmatter to cross-link them.
+
+## Blog Studio
+
+`npm run studio` starts a local tool for writing and scheduling posts with Claude. See `studio/README.md`.
+
 ## Deployment
 
 `vercel.json` limits automatic deployments to the `master` branch; pushes to other branches do not deploy. Merge to `master` to release.

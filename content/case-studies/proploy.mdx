@@ -1,0 +1,197 @@
+---
+title: "Proploy"
+subtitle: "An AI research agent for B2B software procurement: it shortlists real products from a curated catalog, explains the trade-offs, writes an implementation brief, and hands the buyer to a vetted expert."
+slug: proploy
+category: "AI procurement"
+role: "Full-stack engineer and team lead, team of 5"
+period: "Oct 2025 – present"
+summary: "How I led the build of an AI procurement platform: a tool-using Claude agent grounded in a pgvector catalog with hybrid search, streamed live through three services on Cloud Run, with catalog facts kept apart from the model's judgement."
+facts:
+  - { value: "3d → 15s", label: "research turnaround" }
+  - { value: "<50ms", label: "catalog search latency" }
+  - { value: "−40%", label: "infrastructure cost" }
+stack: ["Anthropic SDK", "FastAPI", "Next.js", "Postgres + pgvector", "Cloud Run"]
+link: { label: "Visit proploy.io", href: "https://proploy.io" }
+video:
+  src: /videos/proploy-launch.mp4
+  poster: /videos/proploy-launch-poster.jpg
+  caption: "Proploy in 30 seconds: from shortlisting software to an implementation brief and a buyer workspace."
+tldr:
+  - "A Claude agent on the native Anthropic SDK that searches a curated software catalog, compares products and writes implementation briefs. Research that took about three days now takes about fifteen seconds."
+  - "The gateway owns retrieval and the agent only reasons: the agent reaches the catalog through typed tools over internal HTTP, never through the database."
+  - "The catalog decides facts and the model decides judgement. Missing evidence shows as unknown, never as no, so the model cannot invent a certification."
+  - "The hardest problem was not the model. It was streaming a long agent turn live through three services without stalls, duplicates or lost replies."
+---
+
+## The problem
+
+Buying business software is slow, and it runs on opinion. A buyer compares vendor pages, review sites and forum threads for days, and then still has to find someone who can implement the tool they picked. Generic chatbots make this worse. They confidently recommend products that don't fit the brief, and sometimes products that don't exist.
+
+Proploy set out to replace those three days with a research assistant that shortlists **real** products from a curated catalog, explains why each one fits or doesn't, writes an implementation brief the buyer can hand to their team, and introduces them to a vetted expert who has implemented that tool before.
+
+Three groups use it:
+
+- **Buyers**: operations, IT and finance leads at small and mid-size companies evaluating a category such as HR, CRM or project management.
+- **Experts and agencies** who implement those tools and want qualified leads rather than cold ones.
+- **Internal operators** who curate the catalog and approve experts.
+
+## My role
+
+I joined in October 2025 as a full-stack engineer and became team lead for a team of five. I owned the agent service end to end, the retrieval layer the agent depends on, the streaming path from the agent to the browser, and the Cloud Run deployment of the Python services. I worked across the Next.js frontend wherever the AI workspace touched it.
+
+## Architecture
+
+Four deployable services on Cloud Run, one Postgres database with pgvector, and an offline pipeline that builds the catalog.
+
+<Figure caption="The four services. The agent never queries the catalog itself; it calls the gateway, which runs the search for both the UI and the agent.">
+  <Mermaid label="Proploy service topology" chart={`
+flowchart LR
+  B["Browser<br/>session in HttpOnly cookies"]
+  N["Next.js<br/>edge gate + CSP<br/>backend-for-frontend proxy"]
+  G["API gateway · FastAPI<br/>verifies the user's JWT<br/>catalog search · streaming proxy"]
+  A["Agent service · FastAPI<br/>Claude tool loop"]
+  D[("Postgres + pgvector<br/>catalog · experts · workspace")]
+  I["Ingestion pipeline<br/>crawl → extract → embed"]
+  L["Claude API<br/>web research tool"]
+  B --> N
+  N -->|"bearer token attached server-side"| G
+  G -->|"SSE stream"| A
+  A -->|"typed catalog tools"| G
+  G --> D
+  A --> L
+  I -.->|"offline batch writes"| D
+`} />
+</Figure>
+
+- **Next.js** sets a per-request content security policy, gates protected pages, and acts as a backend-for-frontend. The browser never holds a token for the API: a server-side proxy attaches it from the session cookie, and forwards only an allowlist of headers.
+- **The API gateway** verifies the user's token against the identity provider's public keys, owns all catalog search, and proxies the agent's stream to the browser while saving each turn.
+- **The agent service** runs the tool loop. It is separate because it has a different runtime profile: long-lived streams, CPU between requests, and model spend that should never take the CRUD API down with it.
+- **The ingestion pipeline** crawls vendor pages, reviews and community sources, extracts structured claims with an LLM, merges them into one record per product, and embeds it.
+
+## Key decisions
+
+### 1. The gateway owns retrieval; the agent only reasons
+
+The agent never touches the catalog database. It calls typed tools such as search and compare, which are HTTP calls back to the gateway, and the gateway runs the search.
+
+<Tradeoffs
+  title="Retrieval in the gateway"
+  pros={[
+    "One ranking implementation serves both the search page and the agent",
+    "The agent service stays stateless about data and needs no catalog credentials",
+    "Search can be tuned and tested without touching the agent",
+  ]}
+  cons={[
+    "One extra network hop per tool call",
+    "The tool contract lives in two repos and has to be kept in step by hand",
+  ]}
+/>
+
+That second cost was real. The agent was sending compliance and price filters that the gateway quietly ignored, so a request for "SOC 2 under $50 a seat" came back unfiltered. Nothing failed loudly, because both sides were individually correct. A shared contract model with a test on both sides is the fix, and it is the first thing I would put in place on any new two-service boundary.
+
+### 2. One embedding per product, not chunked documents
+
+The question retrieval answers is "which product?", not "which paragraph?". So each product is condensed into a single semantic card of description, best-fit use cases, capabilities, integrations, strengths and industries, and embedded once with OpenAI's text-embedding-3-small at 1,536 dimensions into an HNSW index.
+
+The index stays small and results come back already de-duplicated by product. The cost is that detail that only lives in reviews, such as "the offline mode is good", never reaches the vector. It only influences ranking through the keyword side. I wrote about the trade-off, and what I would change, in [Hybrid search in Postgres, and the RRF mistake](/blog/hybrid-search-in-postgres).
+
+### 3. Hybrid search, then the model as the final ranker
+
+Postgres full-text search and pgvector cosine search run in parallel and are fused into a candidate pool. A weighted score re-orders the pool and applies business rules for team size, region and budget. The model then picks and orders the final shortlist, with a score and a one-line reason for each product, which the UI renders as cards.
+
+Fast to ship, and every term can be explained on its own. The weights were set by hand, not tuned on labelled data, which is the main thing I would do differently.
+
+### 4. A tool loop on the SDK, not an agent framework
+
+One agent, running a ReAct-style loop directly on the Anthropic SDK with native tool schemas.
+
+<Steps>
+  <Step title="Load the session">
+    Recent state from a fast cache, older turns from Postgres. A separate buyer profile carries the facts that matter, so they survive when long conversations are compacted.
+  </Step>
+  <Step title="Call the model with tools">
+    Claude Haiku 4.5 drives the interactive loop for speed and cost. Long-form documents go to Claude Sonnet.
+  </Step>
+  <Step title="Run the tools it asks for">
+    Identical tool calls within a turn are answered from a memo instead of re-run, which saves both latency and spend.
+  </Step>
+  <Step title="Stop on a hard cap">
+    The loop ends when the model finishes, when a token budget is reached, or when the turn cap is hit. On the cap, a salvage path still returns the profile and recommendations gathered so far rather than an error.
+  </Step>
+</Steps>
+
+There was only one agent, so a framework would have added abstraction without a second agent to justify it. Owning the loop meant full control over streaming, auditing and failure handling. It also meant owning retries, context compaction and state, which a framework would have handed me.
+
+### 5. Facts from the catalog, judgement from the model
+
+The product-fit matrix compares each shortlisted product against the buyer's needs. Its rows are split by who can actually know the answer.
+
+| Row | Decided by | When evidence is missing |
+| --- | --- | --- |
+| Compliance certifications | Catalog | Unknown |
+| Integrations | Catalog | Unknown |
+| Industry fit | Catalog | Unknown |
+| Deployment model | Catalog | Unknown |
+| Team size fit | Catalog | Unknown |
+| Goals fit | Model | Model's judgement |
+| Budget fit | Model | Model's judgement |
+| Timeline fit | Model | Model's judgement |
+
+<Callout type="insight" title="Unknown is not no">
+  The rule that missing evidence becomes "unknown", never "no", matters as much as the split. A matrix full of confident "no" cells is a hallucination with better formatting. Sparser matrices are the price, and buyers trusted them more for it.
+</Callout>
+
+### 6. Briefs as sanitised documents
+
+When a buyer asks for an implementation brief, a skill asks Claude Sonnet for a seven-section document as HTML. The HTML is sanitised against an allowlist with a content security policy that forbids scripts, stored, and announced to the UI as a ready document.
+
+If I built it again, the model would return JSON against a schema and a deterministic template would render it. That is testable, diffable, and cannot produce markup the sanitiser has to catch.
+
+## The hardest problem: streaming through three services
+
+Agent turns take tens of seconds, so answers have to stream. Getting them to stream reliably through the browser, Next.js, the gateway and the agent touched every layer of the stack. The full story is in [Streaming an agent's answer through three services](/blog/streaming-an-agent-through-three-services); the short version:
+
+<Figure caption="One research turn. The gateway is a stateful proxy: it parses the agent's events, saves the turn, and re-emits its own events to the browser.">
+  <Mermaid label="Sequence of one streamed research turn" chart={`
+sequenceDiagram
+  participant B as Browser
+  participant N as Next.js proxy
+  participant G as API gateway
+  participant A as Agent service
+  participant C as Claude
+  B->>N: POST research (fetch stream)
+  N->>G: forward with bearer token, no buffering
+  G->>G: save user message + empty assistant reply
+  G->>A: open stream (short connect, long read timeout)
+  loop until done
+    A->>C: messages + tools
+    C-->>A: text and tool calls
+    A->>G: catalog search over internal HTTP
+    G-->>A: ranked products
+    A-->>G: SSE events
+    G-->>N: re-emitted events
+    N-->>B: bytes as they arrive
+  end
+  G->>G: save final reply + shortlist, drop duplicate done
+`} />
+</Figure>
+
+- **The browser** needed to POST a JSON body, which rules out EventSource. The UI reads a fetch stream and parses events by hand, including events split across network chunks, into a pure reducer that is unit-tested.
+- **The gateway** could not be a byte pipe. It saves each turn, recovers a partial reply when the stream fails partway, and drops a completion event that some agent builds sent twice.
+- **Timeouts** had to be split three ways: a short connect timeout so an unreachable agent fails fast, a long read timeout to cover a cold start plus the first token, and a normal pool timeout so a saturated pool fails instead of hanging.
+- **Cloud Run** had to keep the agent warm and keep its CPU allocated between requests. With CPU throttled outside requests, streams stalled mid-turn.
+
+## Results
+
+- Procurement research that took about **three days** now takes about **fifteen seconds**.
+- Catalog search answers in **under 50 ms** on tuned Postgres.
+- Moving the services to auto-scaling Cloud Run cut infrastructure cost by about **40 percent**.
+- Roughly **1,900 automated tests** across the services, with a coverage floor on the two Python services.
+
+## What I'd do differently
+
+- **Build the retrieval evaluation first.** A labelled set of real buyer queries with recall@5 and nDCG in CI would have caught the fusion bug, the dropped filters and silent fallbacks the moment they shipped. The same goes for a faithfulness check on the model's free-text answers.
+- **Private by default between services.** Service-to-service calls should use platform identity and private ingress from day one, with a signed, short-lived statement of which user a request is for, rather than a shared secret applied route by route.
+- **Gate deploys on tests, and run migrations in the pipeline.** Tag every image with its commit, roll out gradually behind a health probe, and apply schema changes as a job rather than by hand.
+- **One owner per schema.** Three migration systems share one database. It works, but by convention rather than enforcement.
+- **Structured output for the shortlist.** The model's ranked picks travel as a text marker that the agent service parses. A dedicated tool call with a JSON schema is sturdier and provider-neutral.

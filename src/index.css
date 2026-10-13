@@ -117,3 +117,283 @@ body {
 .tpp-root.tpp-root {
   --tpp-serif: "Newsreader", "Cormorant Garamond", Georgia, serif;
 }
+
+/*
+ * Blog posts. Long-form type on paper, built from the tokens above:
+ * ink for text, accent for links and markers, deep for code, tape for highlights.
+ * In the components layer, so utilities on MDX components still win inside an article.
+ */
+@layer components {
+.prose {
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--color-ink);
+  overflow-wrap: break-word;
+}
+.prose > * + * {
+  margin-top: 1.25em;
+}
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-ink);
+  scroll-margin-top: 2.5rem;
+}
+.prose h2 {
+  margin-top: 2.4em;
+  font-size: 30px;
+}
+.prose h3 {
+  margin-top: 1.9em;
+  font-size: 24px;
+}
+.prose h4 {
+  margin-top: 1.6em;
+  font-family: var(--font-sans);
+  font-size: 17px;
+  font-weight: 600;
+}
+.prose h2 + *,
+.prose h3 + *,
+.prose h4 + * {
+  margin-top: 0.7em;
+}
+.prose p,
+.prose ul,
+.prose ol,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose blockquote,
+.prose .key-points,
+.prose .references,
+.prose [data-callout],
+.prose .steps {
+  max-width: 68ch;
+}
+.prose a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s;
+}
+.prose a:hover {
+  text-decoration-color: currentColor;
+}
+.prose strong {
+  font-weight: 600;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+}
+.prose ul {
+  list-style: disc;
+}
+.prose ol {
+  list-style: decimal;
+}
+.prose li + li {
+  margin-top: 0.4em;
+}
+.prose li > p + p,
+.prose li > ul,
+.prose li > ol {
+  margin-top: 0.4em;
+}
+.prose li::marker {
+  color: color-mix(in srgb, var(--color-ink) 50%, transparent);
+}
+.prose blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 1.25em;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-style: italic;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--color-ink) 80%, transparent);
+}
+.prose hr {
+  border: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--color-ink) 20%, transparent);
+  margin: 3em 0;
+}
+.prose > img,
+.prose p > img {
+  display: block;
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--color-ink) 15%, transparent);
+}
+
+/* Tables: the dashed rules used under card titles. */
+.prose table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.prose th,
+.prose td {
+  padding: 0.6em 0.8em;
+  text-align: left;
+  vertical-align: top;
+}
+.prose th {
+  font-weight: 600;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 25%, transparent);
+}
+.prose td {
+  border-bottom: 1px dashed color-mix(in srgb, var(--color-ink) 15%, transparent);
+}
+.prose tr > :first-child {
+  padding-left: 0;
+}
+
+/* Inline code: ink at 8% on paper. */
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.12em 0.4em;
+  border-radius: 0.25rem;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+/* Code blocks: the fact tile's navy, highlighted at build time (see code-theme.ts). */
+.prose figure[data-rehype-pretty-code-figure] {
+  margin: 1.75em 0;
+}
+.prose figcaption[data-rehype-pretty-code-title] {
+  display: inline-block;
+  padding: 0.45em 1em;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background: var(--color-deep);
+  color: color-mix(in srgb, var(--color-paper) 70%, transparent);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--color-paper) 20%, transparent);
+}
+.prose figcaption[data-rehype-pretty-code-title] + .code-block {
+  border-top-left-radius: 0;
+}
+.prose pre {
+  overflow-x: auto;
+  padding: 2.4em 0 1.1em;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--color-paper);
+}
+.prose pre > code {
+  display: grid;
+  min-width: max-content;
+}
+.prose pre [data-line] {
+  padding: 0 1.25em;
+  border-left: 3px solid transparent;
+}
+.prose pre [data-highlighted-line] {
+  border-left-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-paper) 8%, transparent);
+}
+.prose pre [data-highlighted-chars] {
+  border-radius: 0.2em;
+  background: color-mix(in srgb, var(--color-tape) 25%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-tape) 25%, transparent);
+}
+.prose pre code[data-line-numbers] {
+  counter-reset: line;
+}
+.prose pre code[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.5em;
+  margin-right: 1.25em;
+  text-align: right;
+  color: color-mix(in srgb, var(--color-paper) 35%, transparent);
+}
+
+/* Footnotes, from remark-gfm: a small dashed-off section at the end. */
+.prose sup a[data-footnote-ref] {
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0 0.15em;
+}
+.prose .footnotes {
+  margin-top: 3.5em;
+  border-top: 1px dashed color-mix(in srgb, var(--color-ink) 20%, transparent);
+  padding-top: 1.5em;
+  font-size: 15px;
+  color: color-mix(in srgb, var(--color-ink) 75%, transparent);
+}
+.prose .footnotes h2 {
+  margin: 0 0 0.75em;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-accent);
+}
+.prose .footnotes ol {
+  padding-left: 1.25em;
+}
+.prose a[data-footnote-backref] {
+  text-decoration: none;
+  margin-left: 0.25em;
+}
+
+/* MDX components: markdown nested inside them keeps the house list and paragraph rhythm. */
+.callout-body > * + *,
+.step-body > * + *,
+.key-points-body > * + *,
+.references-body > * + * {
+  margin-top: 0.75em;
+}
+.callout-body ul,
+.step-body ul,
+.key-points-body ul,
+.references-body ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.key-points-body ul {
+  list-style: none;
+  padding-left: 0;
+}
+.key-points-body li {
+  position: relative;
+  padding-left: 1.1em;
+}
+.key-points-body li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-accent);
+}
+.key-points-body a {
+  color: var(--color-tape);
+}
+.steps {
+  counter-reset: step;
+}
+.step {
+  counter-increment: step;
+}
+.step-number::before {
+  content: counter(step);
+}
+.prose .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+}

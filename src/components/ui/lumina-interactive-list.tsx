@@ -24,6 +24,9 @@ import {
   type Texture,
 } from "three"
 
+import { ArrowUpRight } from "lucide-react"
+import { Link } from "react-router"
+
 import { cn } from "@/lib/utils"
 
 export interface LuminaSlide {
@@ -35,6 +38,13 @@ export interface LuminaSlide {
   meta?: string
   tags?: string[]
   link?: { label: string; href: string }
+  /**
+   * A short muted loop that fades in over the image once the slide has settled.
+   * `media` stays the image the shader transitions to and from.
+   */
+  video?: string
+  /** An in-site case study, shown as a second link. */
+  caseStudy?: { label: string; href: string }
   /** Small caption in the corner, e.g. "Illustration". */
   caption?: string
 }
@@ -156,6 +166,8 @@ export function LuminaInteractiveList({
   const busy = React.useRef(false)
 
   const [active, setActive] = React.useState(0)
+  const [settled, setSettled] = React.useState(true) // no transition running, so a slide video may show
+  const videoRef = React.useRef<HTMLVideoElement>(null)
   const [ready, setReady] = React.useState(false) // textures loaded, canvas visible
   const [visible, setVisible] = React.useState(false)
   const [held, setHeld] = React.useState(false)
@@ -271,9 +283,11 @@ export function LuminaInteractiveList({
     (next: number) => {
       if (next === shown.current || busy.current) return
       setActive(next)
+      setSettled(false)
       const g = gl.current
       if (!g) {
         shown.current = next
+        setSettled(true)
         return
       }
       const from = g.textures[shown.current]
@@ -299,12 +313,26 @@ export function LuminaInteractiveList({
             u.uProgress.value = 0
             g.render()
             busy.current = false
+            setSettled(true)
           },
         },
       )
     },
     [reduced, transition],
   )
+
+  // A slide's video plays only while it is on screen, settled, and motion is allowed.
+  React.useEffect(() => {
+    const v = videoRef.current
+    if (!v) return
+    if (settled && visible && !tabHidden && !reduced) {
+      v.play().catch(() => {
+        /* Autoplay refused: the still image stays visible underneath. */
+      })
+    } else {
+      v.pause()
+    }
+  }, [active, settled, visible, tabHidden, reduced])
 
   // Title and description re-enter whenever the slide changes.
   React.useLayoutEffect(() => {
@@ -351,19 +379,67 @@ export function LuminaInteractiveList({
         aria-hidden="true"
         className={cn("absolute inset-0 size-full transition-opacity duration-700", ready ? "opacity-100" : "opacity-0")}
       />
+      {/* A slide's video plays in a framed screen on the right, clear of the text column.
+          The still underneath dims and blurs so the two screens don't compete. */}
+      {slide.video && !reduced ? (
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 hidden bg-night/80 backdrop-blur-sm transition-opacity duration-700 lg:block",
+            settled ? "opacity-100" : "opacity-0",
+          )}
+        />
+      ) : null}
+      {slide.video && !reduced ? (
+        <div
+          key={slide.video}
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute top-1/2 right-[4%] z-[2] hidden w-[min(46%,44rem)] -translate-y-1/2 overflow-hidden rounded-md border border-paper/15 bg-deep shadow-[0_30px_60px_-24px_rgba(0,0,0,0.85)] transition-[opacity,scale] duration-700 ease-out lg:block",
+            settled ? "scale-100 opacity-100" : "scale-[0.97] opacity-0",
+          )}
+        >
+          <span className="flex h-7 items-center gap-1.5 bg-paper-dim px-3">
+            <i className="size-2 rounded-full bg-ink/20" />
+            <i className="size-2 rounded-full bg-ink/20" />
+            <i className="size-2 rounded-full bg-ink/20" />
+          </span>
+          <video
+            ref={videoRef}
+            src={slide.video}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            className="block aspect-video w-full bg-deep"
+          />
+        </div>
+      ) : null}
       {/* Shade the left (and, on phones, the bottom) so the text always reads. */}
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,21,40,0.96)_0%,rgba(12,21,40,0.85)_36%,rgba(12,21,40,0)_62%)] max-md:bg-[linear-gradient(0deg,rgba(12,21,40,0.97)_0%,rgba(12,21,40,0.92)_58%,rgba(12,21,40,0.55)_78%,rgba(12,21,40,0.25)_100%)]"
       />
 
-      <p className="absolute top-10 right-6 font-display text-[15px] text-paper/70 tabular-nums sm:right-10">
+      {/* The whole slide opens the project's live site or repository. Text and controls sit above it. */}
+      {slide.link ? (
+        <a
+          href={slide.link.href}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`${slide.title}: ${slide.link.label}`}
+          title={slide.link.label}
+          className="absolute inset-0 cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-accent"
+        />
+      ) : null}
+
+      <p className="pointer-events-none absolute top-10 right-6 font-display text-[15px] text-paper/70 tabular-nums sm:right-10">
         <span className="text-paper">{String(active + 1).padStart(2, "0")}</span> / {String(count).padStart(2, "0")}
       </p>
 
       <div
         aria-live="polite"
-        className="absolute inset-x-0 bottom-36 px-5 sm:px-10 md:top-1/2 md:bottom-auto md:-translate-y-1/2 lg:pl-[max(2.5rem,calc((100vw-72rem)/2+2.5rem))]"
+        className="pointer-events-none absolute inset-x-0 bottom-36 px-5 sm:px-10 md:top-1/2 md:bottom-auto md:-translate-y-1/2 lg:pl-[max(2.5rem,calc((100vw-72rem)/2+2.5rem))]"
       >
         <div className="max-w-[31rem]">
           {slide.meta ? <p className="text-[15px] font-medium text-tape">{slide.meta}</p> : null}
@@ -385,22 +461,20 @@ export function LuminaInteractiveList({
                 ))}
               </ul>
             ) : null}
-            {slide.link ? (
-              <a
-                href={slide.link.href}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-7 inline-flex items-center gap-2 rounded-full bg-paper px-5 py-2.5 text-[14px] font-semibold text-ink transition-colors hover:bg-accent hover:text-paper"
+            {slide.caseStudy ? (
+              <Link
+                to={slide.caseStudy.href}
+                className="pointer-events-auto mt-7 inline-flex items-center gap-1 text-[14px] font-semibold text-paper underline-offset-4 hover:text-accent hover:underline"
               >
-                {slide.link.label}
-              </a>
+                {slide.caseStudy.label} <ArrowUpRight className="size-4" aria-hidden="true" />
+              </Link>
             ) : null}
           </div>
         </div>
       </div>
 
       {slide.caption ? (
-        <p className="absolute right-6 bottom-28 text-[13px] text-paper/60 sm:right-10 md:bottom-32">{slide.caption}</p>
+        <p className="pointer-events-none absolute right-6 bottom-28 text-[13px] text-paper/60 sm:right-10 md:bottom-32">{slide.caption}</p>
       ) : null}
 
       {/* The index: one entry per slide, with a line that fills until the next one. */}

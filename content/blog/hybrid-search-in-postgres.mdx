@@ -1,0 +1,140 @@
+---
+title: "Hybrid search in Postgres, and the RRF mistake"
+subtitle: "Full-text plus pgvector in one database, why one embedding per product was right, and how a score posing as a rank quietly broke the fusion."
+slug: hybrid-search-in-postgres
+date: 2026-10-08
+tags: [ai, databases, system-design]
+project: proploy
+thumbnail: /blog/hybrid-search-in-postgres/thumbnail.svg
+summary: "Hybrid retrieval for an AI shopping assistant, built entirely in Postgres: full-text search and pgvector side by side, fused with reciprocal rank fusion. What worked, what ts_rank is not, and the subtle bug of feeding a similarity score into a rank-based formula."
+tldr:
+  - "When the answer is an entity, embed one card per entity rather than chunking documents. The index stays small and results arrive de-duplicated."
+  - "Postgres ts_rank is not BM25. It has no inverse document frequency or term saturation, so don't call it BM25 and don't expect BM25's behaviour."
+  - "Reciprocal rank fusion only uses ranks. Feeding it 1/similarity as a pseudo-rank breaks the property that makes it work."
+  - "If the candidate pool is never larger than the final result, the fusion step does nothing at all. Build a labelled eval set before tuning any of it."
+draft: false
+---
+
+## The setup
+
+The product is a research assistant for buying business software. A buyer types something like "an HR system for a 40-person company in Australia, under ten dollars a seat", and the agent needs the handful of catalog products that genuinely fit.
+
+All of it runs in one Postgres database: the catalog tables, a full-text keyword search, and a pgvector column with an HNSW index. No separate search engine and no separate vector store. For a catalog of this size that keeps operations simple, and the question was whether retrieval quality could keep up.
+
+## One embedding per product
+
+The first decision was what to embed. The standard RAG recipe is to chunk documents into passages and embed each chunk. That recipe answers "which paragraph?". This product needs to answer "which product?".
+
+So each product is condensed into a single semantic card, up to about 8,000 characters, built from structured data the ingestion pipeline extracted: a description, who it is best for, its main capabilities, key integrations, strengths, and the industries it serves. Each card is embedded once at 1,536 dimensions.
+
+<Tradeoffs
+  title="One card per product vs chunked documents"
+  pros={[
+    "The index has one row per product, so it stays small",
+    "Results are already de-duplicated by product; no aggregation step",
+    "The card is written for retrieval, so noise from marketing pages stays out",
+  ]}
+  cons={[
+    "Detail that only appears in reviews never reaches the vector",
+    "Queries about a narrow feature, such as offline mode, depend on the keyword side",
+  ]}
+/>
+
+I would make the same call again. If review text matters more later, embed review chunks separately and pool their scores up to the product, rather than abandoning the card.
+
+## The keyword side, and what ts_rank is not
+
+The keyword leg uses Postgres full-text search: `to_tsvector` on the product text, a query from `plainto_tsquery`, and `ts_rank` to score. It is easy to call that BM25. It is not.
+
+| | BM25 | Postgres ts_rank |
+| --- | --- | --- |
+| Rare terms weigh more | Yes, through inverse document frequency | No |
+| Repeated terms saturate | Yes | No, more occurrences keep adding |
+| Length normalisation | Built in and tunable | Optional flags, different behaviour |
+| Needs an index to be fast | Inverted index | A GIN index on a stored tsvector |
+
+Two more practical notes. `plainto_tsquery` ANDs every term, so a long natural-language query often matches nothing and the keyword leg returns empty. And computing `to_tsvector` inline on every query scans the whole catalog. A generated tsvector column with a GIN index fixes the speed; an OR fallback or `websearch_to_tsquery` helps recall. For real BM25 inside Postgres, extensions such as ParadeDB's pg_search exist.
+
+## The vector side
+
+The query is embedded with the same model as the cards, and pgvector returns the nearest products by cosine distance through an HNSW index.
+
+```sql title="vector leg"
+SELECT product_id, 1 - (embedding <=> $1::vector) AS similarity
+FROM product_embeddings
+WHERE embedding_dim = 1536
+ORDER BY embedding <=> $1::vector
+LIMIT $2;
+```
+
+<Callout type="tip" title="Filter on the model, not just the dimension">
+  Filtering on dimension alone means a switch to a different 1,536-dimension model silently mixes two vector spaces. Store the model name and a version with every vector, and filter on both.
+</Callout>
+
+## Fusion: what reciprocal rank fusion actually needs
+
+Both legs run in parallel and each returns a ranked list. Reciprocal rank fusion merges them with a formula that only looks at **positions**:
+
+```text
+score(d) = Σ over lists   1 / (k + rank_in_list(d))        k ≈ 60
+```
+
+That is the point of RRF. Keyword scores and cosine similarities live on incompatible scales, and RRF sidesteps the problem by throwing the scores away and keeping only the order. A product that is third in one list and fifth in the other beats one that is first in one list and absent from the other.
+
+### The mistake
+
+Our vector leg fed RRF a **pseudo-rank** of `1 / similarity` instead of the product's position in the list.
+
+Here is what the vector leg contributes to the fused score for its first, second and tenth results, both ways:
+
+| Vector result | Similarity | Real rank → 1/(60 + rank) | 1/similarity as rank → 1/(60 + 1/sim) |
+| --- | --- | --- | --- |
+| First | 0.82 | 1 → 0.01639 | 1.22 → 0.01633 |
+| Second | 0.80 | 2 → 0.01613 | 1.25 → 0.01633 |
+| Tenth | 0.71 | 10 → 0.01429 | 1.41 → 0.01628 |
+
+With real ranks, the gap between the first and tenth result is about 13 percent of the score. With the pseudo-rank it is under half a percent.
+
+Similarities cluster in a narrow band, so `1/similarity` lands between about 1.2 and 1.5 for every reasonable match. Every vector candidate contributes almost exactly the same amount, and the vector leg's ordering is effectively erased. The code ran, the results looked plausible, and nothing failed.
+
+### The second mistake: fusion that never runs
+
+RRF was used to choose a candidate pool, which a weighted score then re-ordered. For the agent, each leg returned four times the final limit, and the pool was capped at fifty. At the agent's limit of five, each leg returns twenty, the union is at most forty, and the cap of fifty never bites. **The fusion step selected everything**, so it had no effect on the agent at all.
+
+<Callout type="insight" title="Plausible results hide broken ranking">
+  Both bugs produced reasonable-looking shortlists, because a weighted re-rank and the model's own judgement sat downstream and papered over them. Ranking bugs rarely crash. They only show up as a metric moving, and there was no metric.
+</Callout>
+
+## What I would do now
+
+<Steps>
+  <Step title="Build the eval set first">
+    Fifty to a hundred real buyer queries, each labelled with the products that are acceptable answers. Track recall@5 and nDCG@10 in CI, and fail the build on a regression. Every change below gets measured against it.
+  </Step>
+  <Step title="Use real ranks in RRF">
+    Pass each product's position in its list. Keep k around 60 unless the eval set says otherwise.
+  </Step>
+  <Step title="Make the pool bigger than the answer">
+    Fuse to a pool several times the final limit, then re-rank the pool. Otherwise the fusion step is decoration.
+  </Step>
+  <Step title="Replace hand-set weights with a reranker">
+    A cross-encoder over the top twenty or thirty candidates usually beats a hand-weighted formula, and its effect is directly measurable on the eval set.
+  </Step>
+  <Step title="Index the keyword side">
+    A stored tsvector with GIN for speed, and a less strict query parser for recall.
+  </Step>
+</Steps>
+
+<Takeaways>
+- Embed at the level of the thing you return. For a catalog, that is one card per product.
+- Know what your keyword scorer is. ts_rank is useful, but it is not BM25.
+- RRF works because it ignores scores. Give it ranks, and make sure the pool it chooses is larger than the result.
+- Build the labelled eval set before tuning anything. Without it, ranking bugs are invisible.
+</Takeaways>
+
+<References>
+- [Cormack, Clarke and Büttcher, "Reciprocal Rank Fusion outperforms Condorcet and individual rank learning methods"](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf), SIGIR 2009, the original RRF paper.
+- [PostgreSQL: Ranking search results](https://www.postgresql.org/docs/current/textsearch-controls.html#TEXTSEARCH-RANKING), for exactly what ts_rank and ts_rank_cd compute.
+- [pgvector](https://github.com/pgvector/pgvector), for HNSW parameters, ef_search, and iterative index scans with filters.
+- [Okapi BM25](https://en.wikipedia.org/wiki/Okapi_BM25), for the formula and what inverse document frequency and term saturation add.
+</References>

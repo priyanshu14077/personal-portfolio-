@@ -1,7 +1,8 @@
-import { ArrowUpRight, Mail } from "lucide-react"
+import { ArrowUpRight, CalendarDays, Mail } from "lucide-react"
+import { Link } from "react-router"
 
 import { TornEdge } from "@/components/portfolio/torn-edge"
-import { resume } from "@/data/resume"
+import { BOOKING_URL, resume } from "@/data/resume"
 
 export function SiteFooter() {
   return (
@@ -20,13 +21,24 @@ export function SiteFooter() {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-end">
           <a
+            href={BOOKING_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-sm bg-ink px-5 py-3 text-sm font-semibold tracking-wide text-paper transition-colors hover:bg-accent"
+          >
+            <CalendarDays className="size-4" aria-hidden="true" /> Book a call
+          </a>
+          <a
             href={`mailto:${resume.email}`}
-            className="inline-flex items-center gap-2 rounded-sm bg-ink px-5 py-3 text-sm font-semibold tracking-wide text-paper transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center gap-2 rounded-sm px-5 py-3 text-sm font-semibold tracking-wide text-ink shadow-[inset_0_0_0_1px_rgba(38,54,79,0.3)] transition-colors hover:text-accent hover:shadow-[inset_0_0_0_1px_#b4673d]"
           >
             <Mail className="size-4" aria-hidden="true" /> {resume.email}
           </a>
           <div className="flex gap-4">
-            {resume.links.map((l) => (
+            <Link to="/blog" className="text-sm font-semibold text-ink underline-offset-4 hover:text-accent hover:underline">
+              Blog
+            </Link>
+            {resume.links.filter((l) => l.url !== BOOKING_URL).map((l) => (
               <a
                 key={l.label}
                 href={l.url}

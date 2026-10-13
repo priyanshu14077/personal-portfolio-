@@ -1,0 +1,283 @@
+---
+title: "Designing a URL shortener"
+subtitle: "The smallest system that still forces every big distributed-systems decision."
+slug: designing-a-url-shortener
+date: 2026-10-06
+tags: [system-design, distributed-systems, databases]
+series: "System Design 101"
+seriesOrder: 1
+thumbnail: /blog/designing-a-url-shortener/thumbnail.svg
+summary: "A URL shortener looks trivial until you ask how to hand out 100 million unique IDs a day without two machines ever agreeing on anything. This is the first post in System Design 101: requirements, estimates, a design, and the trade-offs behind it."
+tldr:
+  - "Reads outnumber writes by about 100 to 1, so the whole design is about making the redirect path cheap: a cache in front of a key-value lookup."
+  - "Short codes are 7 characters of base62, which gives 3.5 trillion keys, enough for centuries at 100 million writes a day."
+  - "Generate IDs from a pre-allocated range per node, not from a shared counter. It removes the one coordination point that would otherwise cap your write throughput."
+  - "Use 302 redirects, not 301, if you want analytics. Browsers cache a 301 forever and you lose every click after the first."
+draft: false
+---
+
+## The problem, and why it matters
+
+Someone pastes a 180-character link into a message and gets back `pk.sh/3xK9bQa`. Opening the short link sends them to the original.
+
+That is the whole product, and it is the system design interview's favourite warm-up for a good reason. It is small enough to design in forty minutes, yet every question that matters at scale turns up: how do you generate unique identifiers across machines, how do you serve reads at ten times the rate you can write, what happens when a node dies mid-request, and when is a cache lying to you.
+
+If you can defend every box in a URL shortener diagram, you can defend most of a feed, a payments ledger, or a notification pipeline. The shapes repeat.
+
+<Callout type="insight" title="Why this is post one">
+  Every later post in this series reuses a piece of this design: the ID generator shows up again in the message queue, the read-through cache in the news feed, and the estimates in all of them. Read this one first.
+</Callout>
+
+## Requirements
+
+Start with the questions you would ask the person who owns the product. Vague requirements produce vague designs, and most of the design is already decided by the answers.
+
+**Functional**
+
+- Given a long URL, return a short one. The short code must be unique.
+- Given a short URL, redirect to the long one.
+- Links expire after an optional, user-chosen lifetime. The default is never.
+- Users may request a custom alias such as `pk.sh/launch`, if it is free.
+
+**Non-functional**
+
+- **Availability over consistency.** A redirect that works a few hundred milliseconds after creation is fine. A redirect that fails because one region cannot reach another is not.
+- **Low read latency.** The redirect should add less than 50 ms on top of network time. Users notice slow links and blame the destination.
+- **Short codes are unpredictable.** Sequential codes let anyone enumerate every link ever created, including private ones.
+- **It must survive for years.** Links are embedded in printed material and old emails. A short link that stops working is worse than no short link.
+
+What we are explicitly not building: analytics dashboards, link previews, or authentication. We will leave hooks for analytics because that decision affects the redirect status code, which is covered below.
+
+## Back-of-the-envelope estimates
+
+The point of this section is not accuracy. It is to find out which part of the system is going to hurt, so you spend your design time there.
+
+Assume 100 million new links per day and a read-to-write ratio of 100:1. Both are generous for a side project and modest for a large consumer product, which puts the design in the useful middle.
+
+| Figure | Value | Working |
+| --- | --- | --- |
+| Writes per second | ~1,200 | 100M ÷ 86,400 s |
+| Reads per second | ~120,000 | 1,200 × 100 |
+| Read peak (×3) | ~360,000 | Traffic is spiky; plan for triple the mean |
+| Storage per link | ~500 bytes | Long URL (~200 B), code, timestamps, user id, padding |
+| Storage per year | ~18 TB | 100M × 365 × 500 B |
+| Storage over 10 years | ~180 TB | Assuming no growth, which is wrong but useful |
+| Cache for hot links | ~1.2 GB per day of writes | 20% of daily links serve 80% of reads: 20M × ~60 B |
+
+Three things fall out of the table:
+
+1. **Writes are easy.** Twelve hundred inserts a second is a single well-tuned Postgres node. Writes are not the problem.
+2. **Reads are the problem.** 360,000 lookups a second at peak is not a database job. It is a cache job, with the database as the thing behind the cache.
+3. **Storage is boring.** 180 TB over a decade is a lot of disk but a solved problem. We need a store that scales horizontally by key, and almost any key-value store qualifies.
+
+<Callout type="tip" title="Do the arithmetic out loud">
+  In an interview, the table above is worth more than the diagram. It shows you can reason from a product number to an infrastructure number, and it tells the interviewer where you will spend the rest of the session. Round aggressively; nobody cares whether it is 1,157 or 1,200.
+</Callout>
+
+## High-level design
+
+Two paths, one much busier than the other. The write path creates a link; the read path serves a redirect.
+
+<Figure caption="Writes go through the API to the store and warm the cache. Reads hit the cache first and only touch the store on a miss.">
+  <Mermaid label="High-level architecture of the URL shortener" chart={`
+graph LR
+  U[User] --> LB[Load balancer]
+  LB --> API[API nodes]
+  API -->|write| DB[(Key-value store)]
+  API -->|read miss| DB
+  API -->|read| C[(Cache)]
+  API -. async .-> Q[Click events]
+  IDG[ID ranges] -. allocate .-> API
+`} />
+</Figure>
+
+The components, and the one-line reason each one exists:
+
+- **Load balancer.** Spreads traffic across stateless API nodes and lets us take nodes out of rotation without downtime.
+- **API nodes.** Stateless. Any node can serve any request, so scaling out is just adding machines.
+- **Cache.** Holds `code → long URL` for recent and popular links. Serves the overwhelming majority of reads.
+- **Key-value store.** The system of record. One row per link, keyed by short code. Horizontally partitioned by code.
+- **ID range allocator.** Hands each API node a block of IDs to turn into short codes, so no two nodes ever produce the same one. More on this below, because it is the interesting part.
+- **Click events (optional).** Redirects publish an event to a queue; an analytics consumer reads it later. The redirect never waits for it.
+
+### The write path
+
+<Steps>
+  <Step title="Validate the long URL">
+    Check it parses, has an allowed scheme, and is not on the blocklist. Reject early; this is the cheapest point to fail.
+  </Step>
+  <Step title="Pick a short code">
+    If the user asked for a custom alias, try to claim it atomically. Otherwise take the next ID from the node's allocated range and encode it in base62.
+  </Step>
+  <Step title="Write the row">
+    Insert `{ code, long_url, created_at, expires_at, owner }` into the store. The write is conditional on the code not existing, which is what makes custom aliases safe under concurrency.
+  </Step>
+  <Step title="Warm the cache">
+    Most links are clicked within minutes of being created. Writing the mapping to the cache now saves the first read a trip to the store.
+  </Step>
+</Steps>
+
+### The read path
+
+<Figure caption="The redirect path. On a cache hit the store is never touched, which is the case for most requests.">
+  <Mermaid label="Sequence diagram of a redirect" chart={`
+sequenceDiagram
+  participant B as Browser
+  participant A as API node
+  participant C as Cache
+  participant D as Store
+  B->>A: GET /3xK9bQa
+  A->>C: GET 3xK9bQa
+  alt hit
+    C-->>A: https://long.example/...
+  else miss
+    C-->>A: (none)
+    A->>D: GET 3xK9bQa
+    D-->>A: https://long.example/...
+    A->>C: SET 3xK9bQa (TTL)
+  end
+  A-->>B: 302 Location: https://long.example/...
+  A-)A: publish click event
+`} />
+</Figure>
+
+A miss costs one extra round trip to the store, then the result is cached with a TTL so the next request hits. Expired links are handled at read time: if `expires_at` is in the past, return 410 Gone and delete the cache entry. A background job sweeps expired rows from the store at its leisure.
+
+## Deep dive: generating short codes
+
+This is where a URL shortener stops being a CRUD app. We need codes that are short, unique across every node, and not guessable. Three common approaches:
+
+### Option 1: hash the long URL
+
+Take MD5 or SHA-256 of the long URL and keep the first seven characters.
+
+<Tradeoffs
+  title="Hashing the URL"
+  pros={[
+    "No coordination at all; any node computes the code on its own",
+    "The same long URL always yields the same short code, which deduplicates for free",
+  ]}
+  cons={[
+    "Seven characters of a hash collide. At 100M links a day you hit collisions early and need a retry loop that reads the store",
+    "Two users shortening the same URL get the same code, so you cannot have per-user expiry or analytics",
+    "Deterministic codes are guessable if the attacker can guess the long URL",
+  ]}
+/>
+
+### Option 2: a central counter
+
+Keep one auto-incrementing integer in a database or a Redis `INCR`. Encode it in base62.
+
+<Tradeoffs
+  title="Central counter"
+  pros={["Trivially unique", "Codes are as short as they can possibly be"]}
+  cons={[
+    "Every write in the whole system waits on one counter. That is a ceiling on throughput and a single point of failure",
+    "Sequential codes are enumerable: anyone can walk every link you have ever created",
+  ]}
+/>
+
+### Option 3: pre-allocated ID ranges
+
+Keep a single small table of ranges. When an API node starts, or runs low, it claims the next block of a million IDs in one atomic operation. It then hands out IDs from that block locally with no network calls at all.
+
+<Tradeoffs
+  title="Pre-allocated ranges"
+  pros={[
+    "Coordination happens once per million writes, not once per write",
+    "Nodes keep working if the allocator is briefly unavailable; they still have their range",
+    "Combine with a bijective scramble and codes are no longer enumerable",
+  ]}
+  cons={[
+    "A node that crashes loses the rest of its range. With 3.5 trillion keys, nobody will ever notice",
+    "Codes are not deterministic, so deduplicating identical long URLs needs a separate index, if you want it at all",
+  ]}
+/>
+
+Option 3 is the one to pick, and it is the one that comes back in later posts. Here is the allocator in TypeScript, with the one line that makes it safe under concurrency highlighted:
+
+```ts title="id-range.ts" {9}
+const RANGE_SIZE = 1_000_000n
+
+/** Claims the next block of IDs for this node. One row, one atomic increment. */
+export async function claimRange(db: Db): Promise<{ start: bigint; end: bigint }> {
+  const row = await db.one<{ next: bigint }>(
+    `UPDATE id_allocator
+        SET next = next + $1
+      WHERE name = 'links'
+  RETURNING next - $1 AS next`,
+    [RANGE_SIZE],
+  )
+  return { start: row.next, end: row.next + RANGE_SIZE - 1n }
+}
+```
+
+`UPDATE ... RETURNING` is a single statement, so two nodes claiming at the same instant get disjoint ranges without a transaction, a lock, or a retry. The database already serialises writes to a row; we are just using that.
+
+### Encoding and scrambling
+
+Turning an integer into a seven-character code is base62: digits, lowercase and uppercase, so 62 symbols. Seven of them give 62⁷ ≈ 3.5 × 10¹² distinct codes. At 100 million a day that is about 96 years before we run out.
+
+The remaining problem is that consecutive IDs produce consecutive-looking codes. Fix it with a bijective scramble before encoding: multiply by a large odd constant modulo 62⁷. Because the constant is odd and the modulus is a power of 62, the mapping is a permutation, so it never collides and it is reversible if you ever need the original ID back.[^1]
+
+```ts title="short-code.ts"
+const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const SPACE = 62n ** 7n
+const MULTIPLIER = 1_580_030_173n // any odd constant coprime with SPACE
+
+export function toShortCode(id: bigint): string {
+  let n = (id * MULTIPLIER) % SPACE
+  let out = ""
+  for (let i = 0; i < 7; i++) {
+    out = ALPHABET[Number(n % 62n)] + out
+    n /= 62n
+  }
+  return out
+}
+```
+
+<Callout type="warning" title="This is not encryption">
+  A multiplicative scramble stops casual enumeration. It does not stop someone who collects a few thousand codes and solves for the constant. If private links need real secrecy, generate the code from a cryptographic random source and accept the collision check on insert.
+</Callout>
+
+## Deep dive: the redirect status code
+
+Small decision, large consequences. There are two candidates:
+
+| | 301 Moved Permanently | 302 Found |
+| --- | --- | --- |
+| Browser behaviour | Caches the redirect, often indefinitely | Asks the server every time |
+| Load on your system | Lowest possible after first visit | Every click reaches you |
+| Analytics | You see the first click per browser, then nothing | You see every click |
+| Changing the destination | Browsers that cached it never find out | Takes effect immediately |
+
+If the product has any notion of click counts, link editing, or expiry, use **302**. The extra load is precisely the load the cache was built to absorb. If the product is purely "make this shorter, forever", 301 is a free performance win. Most real products want 302 and only discover it after shipping 301.
+
+## Scaling and failure
+
+**Cache.** Memory-resident, sharded by code, with an LRU eviction policy and a TTL of a day or so. A cache node dying means a burst of misses to the store, which the store can absorb because reads at the store are already a small fraction of total reads. Keep the replication factor at two to make that burst smaller.
+
+**Store.** Partition by short code. Codes are scrambled, so load spreads evenly without any hot partition. Replicate each partition three ways; redirects can read from any replica, since a link that was created a second ago being briefly invisible is acceptable under our requirements.
+
+**API nodes.** Stateless apart from their current ID range, which is cheap to lose. Scale on request rate. Health-check them from the load balancer and pull a bad one in seconds.
+
+**Allocator.** The one piece that must not lose data, because a replayed range would hand out duplicate codes. It is a single row with a trivial write rate, so run it on the primary of the store with synchronous replication and stop worrying about it.
+
+**Rate limiting.** Writes are cheap for us and valuable to spammers. Limit creations per API key and per IP at the load balancer before they reach the API.
+
+<Takeaways>
+- Find the hot path from the numbers before you draw anything. Here the numbers said "reads", so the design is a cache with a database behind it.
+- Remove coordination from the write path. Allocating ID ranges in blocks turns one network round trip per write into one per million writes.
+- Make the codes unpredictable with a bijective scramble; it costs one multiplication and prevents enumeration of every link you have ever made.
+- Pick 302 over 301 the moment the product cares about clicks, edits, or expiry.
+- Let the one stateful component be tiny. The allocator is a single row; everything else is replaceable.
+</Takeaways>
+
+<References>
+- [System Design Interview, Volume 1](https://bytebytego.com/), Alex Xu. Chapter 8 covers the same system; the framework for the requirements section comes from there.
+- [Designing Data-Intensive Applications](https://dataintensive.net/), Martin Kleppmann. Chapter 6 on partitioning is the background for the "scrambled keys spread load" claim.
+- [Bijective functions and URL shorteners](https://en.wikipedia.org/wiki/Bijection), for the reasoning behind why the multiplicative scramble never collides.
+- [RFC 9110, section 15.4](https://www.rfc-editor.org/rfc/rfc9110.html#name-redirection-3xx), the definitive text on what browsers may cache for each redirect status.
+</References>
+
+[^1]: The mapping `n ↦ (n · k) mod m` is a bijection whenever `k` and `m` share no common factor. 62⁷ factors as 2⁷ · 31⁷, so any `k` that is odd and not a multiple of 31 works. To reverse it, multiply by the modular inverse of `k`.
