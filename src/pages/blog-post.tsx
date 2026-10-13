@@ -52,12 +52,16 @@ function Post({ post }: { post: PostMeta }) {
     >
       <ReadingProgress />
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_16rem] lg:gap-16 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="min-w-0 max-w-[68ch]">
-          {multiPart && <SeriesBanner series={series} current={post} />}
-          {post.coverImage && (
-            <img src={post.coverImage} alt="" className="mt-8 block w-full rounded-md border border-ink/15 bg-paper-dim" />
+        <div className="min-w-0">
+          {multiPart && (
+            <div className="max-w-[68ch]">
+              <SeriesBanner series={series} current={post} />
+            </div>
           )}
-          {post.tldr && post.tldr.length > 0 && <KeyPoints variant="tldr" items={post.tldr} />}
+          {post.coverImage && (
+            <img src={post.coverImage} alt="" className="mt-8 block w-full max-w-[68ch] rounded-md border border-ink/15 bg-paper-dim" />
+          )}
+          {post.tldr && post.tldr.length > 0 && <KeyPoints variant="tldr" items={post.tldr} className="max-w-[68ch]" />}
           <article ref={articleRef} className="prose">
             <React.Suspense fallback={<p className="text-[16px] text-ink/50">Loading the post…</p>}>
               <MDXProvider components={mdxComponents}>

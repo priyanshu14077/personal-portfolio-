@@ -3,7 +3,7 @@ import * as React from "react"
 // Mermaid's "base" theme, coloured from the palette in src/index.css. Loaded only when a diagram renders.
 const themeVariables = {
   fontFamily: '"Geist", ui-sans-serif, system-ui, sans-serif',
-  fontSize: "15px",
+  fontSize: "18px",
   background: "#f2ede2",
   primaryColor: "#e6dfcf",
   primaryTextColor: "#26364f",

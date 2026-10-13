@@ -161,7 +161,17 @@ body {
 .prose h4 + * {
   margin-top: 0.7em;
 }
-.prose p {
+.prose p,
+.prose ul,
+.prose ol,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose blockquote,
+.prose .key-points,
+.prose .references,
+.prose [data-callout],
+.prose .steps {
   max-width: 68ch;
 }
 .prose a {

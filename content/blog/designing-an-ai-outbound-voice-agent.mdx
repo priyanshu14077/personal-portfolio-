@@ -1,0 +1,361 @@
+---
+title: "Designing an AI outbound voice agent"
+subtitle: "Four planes, a 1.2-second turn budget, and an eval gate that every change has to pass."
+slug: designing-an-ai-outbound-voice-agent
+date: 2026-10-13
+tags: [system-design, ai, distributed-systems]
+summary: "An AI agent that dials consumers, qualifies them in a regulated conversation, and warm-transfers to a human closer. How the architecture is split by latency budget, where the milliseconds go, what the cost levers are, how the agent pool scales from ten closers to a hundred, and why compliance has to be code rather than prompt."
+tldr:
+  - "Split the system into planes by latency budget. Only the real-time plane is on the clock during a call; eligibility, pacing, content and analysis all happen before or after."
+  - "Compliance is deterministic code that runs before every dial and is logged with a rule-set hash. The language model never decides who may be called."
+  - "A voice-to-voice turn has about 950 ms of estimated p50 against a 1.2 s target. End-of-turn detection is the biggest single lever, bigger than the model."
+  - "Billed AI minutes are nearly all of the running cost, so the first thing to prove is that the AI leg leaves the media path on transfer."
+  - "Every change, whether prompt, flow, knowledge base or rules, is promoted only after an offline eval suite passes, then a canary. Every production failure becomes a permanent test case."
+draft: false
+---
+
+## The problem, and why it matters
+
+A team of human closers sells a regulated financial product over the phone. The expensive part of their day is not closing. It is the hour of dialling, voicemail, wrong numbers and five-minute qualification conversations that happen before anyone is worth closing.
+
+The brief: an AI agent that places the outbound calls, says the legally required things in exactly the approved words, asks the qualification questions, answers a bounded set of questions from approved content, and warm-transfers qualified consumers to a free closer with a screen-pop of everything learnt. It starts with ten closers and needs to reach a hundred.
+
+The design has to satisfy two masters that pull in opposite directions. A conversation is only natural if the agent replies within about a second. A regulated conversation is only safe if nothing the agent says is improvised. This post is about how to get both, drawn from a design I worked through for a client. Specifics that identify them, their vendors or their prices are removed; the shape of the system is the point.
+
+<Callout type="note" title="Two kinds of numbers">
+  Figures in this post are either design targets or estimates to be load-tested. None of them are measured production values. Treat the latency budget in particular as a hypothesis with a tracing plan attached.
+</Callout>
+
+## Requirements
+
+**Functional**
+
+- Ingest leads from spreadsheets and the contact-centre platform, with consent evidence attached to every row. Rows without consent evidence are rejected, not queued.
+- Dial consumers within their local calling window, after a deterministic eligibility check against consent, do-not-call lists, state rules, frequency caps and a kill switch.
+- Speak the opening, disclosures and closes word-for-word as approved by counsel.
+- Run a qualification state machine, call internal tools for the facts it needs, and answer questions only from approved content.
+- Warm-transfer qualified consumers to a closer with a screen-pop, release the AI from the call, and reconcile the closer's disposition back into the ledger.
+- Honour opt-out and "I want a human" requests immediately, on every turn.
+
+**Non-functional**
+
+- **Voice-to-voice latency** p50 ≤ 1.2 s and p95 ≤ 2.0 s, measured from the consumer finishing speaking to the first audio of the reply.
+- **Zero compliance violations.** Not "low". A single call outside the window or to a DNC number is an incident.
+- **Scale** from about 11 concurrent AI calls to about 104, and from roughly 60,000 to 600,000 AI minutes a month, without redesigning the control or data planes.
+- **Five-year records** of every call, decision and recording, in-region, with signed access.
+- **Cost per qualified lead** that beats the human dialling it replaces. AI minutes are 97 to 99 percent of running cost, so the design is judged by billed minutes.
+
+## Back-of-the-envelope estimates
+
+| Figure | 10 closers | 100 closers | Working |
+| --- | --- | --- | --- |
+| Concurrent AI calls | ~11 | ~104 | Free closers × pacing ratio, capped by provider quotas |
+| Dials per day | ~4,800 | ~48,000 | About 1.3 calls per second at the top end, which is low for a carrier |
+| AI minutes per month | ~60k | ~600k | The number the bill is made of |
+| Transfers a closer can absorb | 13–20 per day | same per head | A closer call is about 30 minutes; this binds before anything technical does |
+| Cost of leaving the AI bridged after transfer | +30 AI min per transfer | | A 30-minute closer call billed as AI time; roughly a 40 percent increase in AI minutes if missed |
+| Voicemail share of non-connected dials | ~⅓ | ~⅓ | Fast machine detection at the gateway is worth about 0.2 min per voicemail |
+
+Three things fall out:
+
+1. **Closer capacity binds first.** Ten closers absorb maybe 130 to 200 transfers a day. If the AI qualifies more than that, transfers fail and abandonment rises. The dialler has to be paced to free closers, not to lead supply.
+2. **The dial rate is trivial for the carrier.** 1.3 calls per second is nothing. Caller-ID reputation, not throughput, is the telephony risk: answer rates fall per number long before any server is busy.
+3. **The bill is minutes.** Every design decision about the live path is really a decision about billed minutes: release on transfer, hang up on machines fast, cap call length, and avoid paying for generation on lines that never change.
+
+## High-level design: four planes
+
+The system is split by latency budget. Only the real-time plane runs during a call. Everything else is batch or asynchronous and therefore can never slow a conversation down.
+
+<Figure caption="The four planes. Solid arrows are the live call path; dotted arrows are batch or asynchronous.">
+  <Mermaid label="Four-plane overview of the outbound voice agent" chart={`
+flowchart LR
+  CP["Control plane · batch<br/>lead ingestion · compliance gate<br/>scheduler + pacer<br/>config & versions · knowledge pipeline"]
+  RT["Real-time plane · one region<br/>SIP / media gateway<br/>agent workers · fixed lines<br/>tool service · retrieval"]
+  CC["Contact centre<br/>warm transfer via SIP REFER<br/>closer desktop + screen-pop"]
+  DP["Data, evals & ops · async<br/>event bus + ledger<br/>post-call analyzer · observability<br/>eval harness"]
+  CP -->|"paced dial commands"| RT
+  RT -->|"qualified consumer"| CC
+  RT -.->|"events · recordings"| DP
+  CC -.->|"dispositions"| DP
+  DP -.->|"eval gate → pinned versions"| CP
+`} />
+</Figure>
+
+Inside the real-time plane, one stateless agent worker owns each live call and runs a streaming pipeline. Everything on the clock is in this picture; everything else can be slow.
+
+<Figure caption="One agent worker's turn pipeline. Fixed lines bypass the model and the synthesiser entirely.">
+  <Mermaid label="Streaming pipeline inside an agent worker" chart={`
+flowchart LR
+  C["Consumer<br/>PSTN"]
+  GW["SIP / media gateway<br/>jitter buffer · machine detection<br/>recording tap"]
+  EOT["Turn detection<br/>VAD + semantic end-of-turn"]
+  STT["Streaming STT<br/>telephony model"]
+  FSM["Dialogue state machine<br/>+ small LLM"]
+  GR["Output guardrail<br/>forbidden-claim filter"]
+  TTS["Streaming TTS"]
+  FX["Fixed lines<br/>pre-rendered audio"]
+  TS["Tool service<br/>eligibility · state rules<br/>closer availability"]
+  RV["Retrieval<br/>Q&A state only<br/>similarity threshold"]
+  C <--> GW
+  GW --> EOT --> STT --> FSM --> GR --> TTS --> GW
+  FSM --> FX --> GW
+  FSM <--> TS
+  FSM <--> RV
+`} />
+</Figure>
+
+The design decisions behind the boxes, in the order I would defend them:
+
+1. **Compliance is code, not prompt.** Every dial passes a deterministic gate covering consent, DNC, state, local window and caps. The decision is logged with the rule-set hash and re-checked when the call is claimed at dial time. The language model never decides eligibility, and so it can never be talked out of it.
+2. **Closed-loop pacing.** Calls dialled this minute = min(batch maximum, free closers × ratio − in flight, concurrency cap − in flight). A qualified call with no closer free wastes about three AI minutes and burns a lead.
+3. **Fixed lines skip the model entirely.** The opening, disclosures, transfer line and closes are rendered to audio once and replayed. Exact counsel-approved wording, zero generation latency, zero per-call synthesis cost on those turns.
+4. **Guard before speaking.** Generated text is checked against a forbidden-claims policy before it reaches text-to-speech. If it fails, an approved fallback line is spoken instead. The post-call scanner is the second layer, not the only one.
+5. **The AI must leave the media path on transfer.** If it stays bridged, every 30-minute closer call is billed as AI minutes. This is the first thing to prove with the telephony vendor, before anything else is built.
+6. **Tool fast path.** Lead context and state rules are preloaded before the consumer answers. The closer-availability check fires speculatively during the state question, so when the agent decides to transfer, the answer is already there.
+7. **Retrieval only where needed.** The knowledge base is reachable only from the Q&A and objection state, with a similarity threshold. Below the threshold the agent offers a human. It never answers from general knowledge.
+8. **Effectively-once events.** Every webhook lands in an inbox keyed on (event, call, timestamp) before processing. Dials are never auto-retried on an unknown outcome; they are reconciled from events, because a duplicate dial is a compliance incident.
+9. **Eval gate on every change.** Prompts, flows, knowledge, rules and model versions are promoted only after the offline suite passes. Production pins exact versions and never auto-upgrades.
+10. **Machine detection saves money.** Voicemail, IVR and SIT tones are detected at the gateway and hung up fast. Voicemail is about a third of non-connected dials; every tenth of a minute saved there is paid back thousands of times a month.
+
+## Call lifecycle
+
+One qualified call from queue to closer outcome. The opt-out, human-request, no-closer and machine branches use the same components with different end states.
+
+<Figure caption="The happy path. The compliance re-check at claim time and the release of the AI leg after transfer are the two steps that most often go missing in a first build.">
+  <Mermaid label="Sequence diagram of one qualified call" chart={`
+sequenceDiagram
+  participant S as Scheduler
+  participant G as Compliance gate
+  participant W as Agent worker
+  participant C as Consumer
+  participant T as Tool service
+  participant P as Contact centre
+  participant H as Closer
+  S->>G: claim lead, re-check at dial time
+  G-->>S: eligible, rule hash logged
+  S->>W: start call with lead context preloaded
+  W->>C: dial via carrier, machine detection on
+  C-->>W: "Hello?"
+  W->>C: pre-rendered opening and disclosures (< 2 s)
+  loop Qualification state machine
+    C-->>W: answer
+    W->>T: check eligibility or state rule
+    T-->>W: deterministic result
+  end
+  W->>P: speculative closer availability during state question
+  P-->>W: closer free, lead pre-created
+  W->>P: SIP REFER to queue, caller ID = consumer
+  P->>H: route to closer with screen-pop
+  Note over W,P: AI leg released, billing stops
+  W-->>S: CallEnded event to ledger and analyzer
+  H->>P: disposition
+  P-->>S: disposition webhook, reconciled by event id
+`} />
+</Figure>
+
+## Latency budget per turn
+
+The time from the consumer finishing speaking to the first audio of the reply. All stages stream, so they overlap rather than queue. The estimated p50 is about 950 ms against a 1.2 s target, which leaves little room, and every segment must be measured per turn with tracing before anyone believes it.
+
+| Stage | Estimated p50 | Note |
+| --- | --- | --- |
+| Carrier + gateway in | 60 ms | Fixed by geography; keep media in one region next to the carrier |
+| End-of-turn detection | 250 ms | VAD plus a semantic end-of-turn model; the biggest lever |
+| STT final transcript | 80 ms | Streaming, telephony-tuned model |
+| LLM first token | 320 ms | Small model for scripted states; prompt caching on the static prefix |
+| Output guardrail | 30 ms | Forbidden-claim filter on the first sentence |
+| TTS first audio | 140 ms | Streaming, stock voice |
+| Gateway + carrier out | 70 ms | |
+| **Total** | **≈ 950 ms** | Against 1.2 s p50 and 2.0 s p95 |
+| Tool call, when needed | +300–600 ms | Masked by a filler line ("let me check that") |
+
+<Callout type="insight" title="The model is not the bottleneck">
+  A fixed silence timeout either cuts people off or adds dead air. Replacing it with a semantic end-of-turn model plus voice activity detection shortens the wait on clear answers ("yes", "about eight thousand") and holds on hesitations. That one change is worth more than any model swap, and it is CPU-bound, which matters for the worker sizing below.
+</Callout>
+
+Hard rules that follow from the table: keep media, STT, LLM and TTS endpoints in one region next to the carrier point of presence. Never hairpin audio through another continent to save on compute. Stream every stage. Any tool call over about a second gets a filler line.
+
+## Efficiency levers
+
+Ordered by cost impact. Because billed minutes dominate, the levers that change minutes outrank the levers that change infrastructure.
+
+| Lever | Mechanism | What it saves |
+| --- | --- | --- |
+| Release the AI leg on transfer | SIP REFER, or a vendor mode that drops the AI from the media path | ~30 AI minutes per transfer; the single largest line |
+| Model routing | Small model for scripted states; larger model only for knowledge and objection turns | Roughly half of model cost |
+| Fast machine detection | Hang up on voicemail, IVR and SIT at the gateway; no AI voicemail drops in phase one | Hundreds of minutes per closer per month |
+| Pace to closers | Closed-loop dial rate on free closers | No wasted qualified conversations; abandonment under the legal limit |
+| Pre-rendered fixed lines | Opening, disclosures, transfer line and closes cached as audio | TTS and tokens on every call; zero latency on those turns |
+| Prompt caching | Static system prompt, policy and persona cached at the provider | Input tokens and time to first token |
+| Retrieval only in Q&A | One state owns the knowledge base, not the whole flow | Retrieval latency and context tokens on every qualification turn |
+| Async post-call work | Extraction, scanning and scoring after hang-up, on a cheaper model or batch pricing | Keeps the live path lean |
+| Hard caps | 10-minute maximum call; silence close after two prompts; spend cap per campaign | Runaway calls and runaway bills |
+
+## Scaling the agents
+
+Four tiers, chosen by sustained volume. The control, data and eval planes stay the same in every tier. Only the voice runtime behind the agent-worker interface changes, which is what keeps migration cheap.
+
+<Steps>
+  <Step title="Tier 1 · pilot, up to ~10 closers">
+    A managed voice-agent platform on your own SIP trunk. Around 60k minutes and 11 concurrent calls a month. Low-code orchestration is acceptable here because nothing in the live path is load-bearing yet. Fastest way to a pilot; platform concurrency defaults are small and extra slots cost money.
+  </Step>
+  <Step title="Tier 2 · 25–50 closers">
+    Still a managed runtime, now on an enterprise contract with a second provider for failover, but orchestration moves into your own durable workflow service. In-call tools come off low-code webhooks into a dedicated service, because webhook latency through a visual workflow tool is hard to load-test and harder to explain.
+  </Step>
+  <Step title="Tier 3 · ~100 closers">
+    Self-hosted agent workers on Kubernetes, using an open voice-agent framework, with hosted STT, LLM and TTS APIs behind them and a SIP bridge plus your own session border controller. Around 600k minutes and 104 concurrent calls. Per-minute cost drops to a fraction of the managed tier, paid for with an operations team.
+  </Step>
+  <Step title="Tier 4 · more than a million minutes, or multi-tenant">
+    Self-hosted speech models on GPUs, possibly the language model too. Lowest unit cost and the highest operational and quality risk. Only when the unit economics clearly justify a GPU on-call rotation.
+  </Step>
+</Steps>
+
+<Tradeoffs
+  title="Managed voice platform vs self-hosted workers"
+  pros={[
+    "Pilot in weeks; telephony, turn detection and streaming are someone else's problem",
+    "Per-minute pricing matches per-minute revenue while volume is uncertain",
+    "Failover is a contract clause, not an engineering project",
+  ]}
+  cons={[
+    "Per-minute cost is several times the self-hosted figure at scale",
+    "Concurrency and retrieval quality are capped by the platform's defaults",
+    "You cannot trace inside the turn, so latency debugging is guesswork",
+  ]}
+/>
+
+### Tier 3 runtime: how the worker pool scales
+
+<Figure caption="The worker pool. The scheduler caps in-flight calls at the minimum of every resource, so the slowest one sets the dial rate.">
+  <Mermaid label="Worker pool topology for the self-hosted tier" chart={`
+flowchart LR
+  subgraph TEL["Telephony"]
+    TR["Carrier trunks<br/>channels ≥ peak + transfer legs<br/>number pool · per-number daily cap"]
+    SB["SBC + SIP bridge<br/>2+ nodes, active/active<br/>REFER · ACLs · CPS limit"]
+    TR --> SB
+  end
+  DS["Dispatcher<br/>least-loaded · drain-aware"]
+  subgraph K8S["Worker pool · Kubernetes"]
+    W1["worker pod<br/>K live calls"]
+    W2["worker pod<br/>K live calls"]
+    W3["worker pod<br/>draining, no new calls"]
+    W4["warm spare<br/>headroom ≥ 30%"]
+  end
+  subgraph PRV["Model providers"]
+    ST["STT stream quota"]
+    LM["LLM tokens / min"]
+    TT["TTS stream quota"]
+  end
+  RL["Client-side rate limiter<br/>+ secondary provider"]
+  SB --> DS
+  DS --> W1
+  DS --> W2
+  DS -.-> W3
+  DS -.-> W4
+  W1 --> RL
+  W2 --> RL
+  RL --> ST
+  RL --> LM
+  RL --> TT
+`} />
+</Figure>
+
+The sizing rules, all estimates to be load-tested:
+
+- A worker pod holds about 10 to 25 live calls. Voice activity and end-of-turn detection are CPU-bound, so this is set by cores, not memory.
+- Scale out when active calls ÷ (pods × K) exceeds 0.7. Scale in by draining first; never kill a pod with live calls.
+- Pods ≈ peak concurrent calls × 1.3 ÷ K, which is somewhere between 6 and 14 pods at a hundred closers.
+- The scheduler caps in-flight calls at min(free closers × ratio, pool capacity, provider quotas, trunk channels). The slowest resource sets the dial rate, never the fastest.
+
+### Which dimension binds first
+
+| Dimension | 10 closers | 100 closers | How it scales | Signal to watch |
+| --- | --- | --- | --- | --- |
+| Closer capacity | ~130–200 transfers/day | ~10× | Hiring or shorter closer calls; the AI cannot fix this | Transfer wait time, transfer failure rate |
+| Concurrent AI calls | ~11 | ~104 | Platform slots, then worker pods | Slot or pod utilisation above 70% |
+| Dial rate | ~4,800/day | ~48,000/day | Low for carriers; set the trunk CPS limit to match | Carrier 503s, CPS rejects |
+| Caller-ID reputation | grows with dials per number | | Number pool, registration, per-number daily cap agreed with the carrier | Spam labels, answer rate per number |
+| Provider quotas | | | Enterprise tiers, a client-side rate limiter, a secondary provider | 429s, TTFT p95 |
+| Human QA | 100% of qualified calls | sample only | Auto-score every call with a calibrated judge; humans review flagged calls and a sample | QA backlog age |
+| Data | linear growth | linear growth | Monthly partitions; recordings in object storage with lifecycle rules | Query p95, storage spend |
+
+## Evals and maintenance
+
+The agent is maintained like a regulated product. Every change goes through the same loop, and every production failure becomes a permanent test case.
+
+<Figure caption="The change loop. Nothing reaches production without passing the suite; any compliance breach in canary rolls back automatically.">
+  <Mermaid label="Eval-gated release loop" chart={`
+flowchart LR
+  CH["Change<br/>prompt · flow · KB · rules"] --> OE["Offline evals<br/>L0 rules → L3 voice"]
+  OE --> RG["Release gate<br/>thresholds + counsel"]
+  RG --> CN["Canary<br/>5–10% of dials, pinned"]
+  CN --> PR["Production<br/>exact versions pinned"]
+  PR --> OS["Online auto-score<br/>100% of calls"]
+  OS --> HQ["Human QA<br/>flagged + sample"]
+  HQ --> TR["Triage<br/>failures → new test cases"]
+  TR --> CH
+  CN -.->|"compliance breach"| RB["Automatic rollback"]
+`} />
+</Figure>
+
+### Eval layers and release thresholds
+
+| Layer | What it tests | How | Gate to promote |
+| --- | --- | --- | --- |
+| L0 · Rules | Windows per state, caps, exclusions, thresholds, tool contracts | Unit tests on the rules tables and tools | 100% pass |
+| L1 · Conversation | Every scripted scenario, rebuttals, opt-outs, "are you a robot", prompt injection | Simulated callers (LLM personas) over text, many seeds per scenario; assertions on state path, tool calls and disposition, plus an LLM judge for claims and tone | 0 forbidden claims · 100% opt-out handling · ≥ 95% correct qualification |
+| L2 · Knowledge | Answers from approved content, refusals outside it | A question set that includes out-of-scope questions, run after every content change | ≥ 90% correct · ≥ 95% correct refusals |
+| L3 · Voice | Accents, noise, barge-in, silence, voicemail and IVR recordings, transfer and release | Synthetic callers over real telephony to test numbers | p50 ≤ 1.2 s · p95 ≤ 2.0 s · release on transfer 100% |
+| L4 · Production | Real calls | Rule scanner plus LLM judge on every call; human QA on flagged calls and a sample | Canary metrics within bounds before full rollout |
+
+<Callout type="warning" title="Calibrate the judge before trusting it">
+  An LLM judge that scores every call is only useful if it agrees with human QA. Measure that agreement on labelled calls before it replaces anyone, and re-check it monthly. A judge that drifts silently is worse than no judge, because it manufactures confidence.
+</Callout>
+
+### Online alerts and automatic actions
+
+| Trigger | Action |
+| --- | --- |
+| Opt-out not honoured, call outside window, DNC hit | Pause the campaign the same day |
+| Forbidden claim detected | Pause and roll back to the previous version |
+| p95 latency above 2.0 s for 15 minutes | Alert and fail over to the secondary provider |
+| Transfer failures above 5% in an hour | Alert and lower the pacing ratio |
+| Abandonment approaching the legal limit | Alert and lower the pacing ratio |
+| Qualify rate ±30% against the 7-day baseline | Investigate lead source, speech recognition, flow |
+| Knowledge "no answer" rate rising | Content request to the approver |
+
+### Maintenance cadence
+
+| When | Work |
+| --- | --- |
+| Daily | QA queue, compliance alerts, latency and error SLOs, spend against cap |
+| Weekly | Eval report diff; top failure clusters into flow and prompt fixes; unanswered questions into content requests |
+| Monthly | State rules and calling hours reviewed with counsel; DNC list freshness; number reputation; cost per qualified lead; judge calibration; backup restore test |
+| Any model or provider change | Pin versions, never auto-upgrade. Full suite L0 to L3, then canary, then rollout |
+| Any script or legal change | Counsel approval recorded on the version before it can be promoted |
+
+## What breaks first as volume grows
+
+- **Closer capacity.** Ten closers absorb a couple of hundred transfers a day; an ambitious target can imply twice that. Pacing must hold this line or transfers fail and abandonment rises.
+- **Caller-ID reputation.** Answer rates fall before any server does. Plan the number pool and registration before scaling dials.
+- **Provider quotas.** Speech concurrency and model rate limits are hit around tier 2. You need enterprise tiers and a second provider before you need them.
+- **Human QA throughput.** Reviewing every call stops scaling after the pilot. A calibrated auto-scorer has to be in place first.
+- **Low-code in the live path.** In-call webhooks through a visual workflow tool add latency and resist load testing. Move them into a service by tier 2.
+- **Retrieval quality across shards.** Managed platforms degrade once the knowledge base is split into more than a few shards. The fallback is an external retrieval function on your own vector store.
+
+<Takeaways>
+- Split by latency budget, not by team. If a component is not on the clock during a call, it must not be able to slow one down.
+- Put compliance in deterministic code with a logged rule hash. Prompts are for tone; they are not a control.
+- Measure the turn, not the model. End-of-turn detection and geography move the p50 more than model choice does.
+- Design for the bill. Release on transfer, hang up on machines fast, pre-render fixed lines, cap everything.
+- Pace to the slowest resource, which is usually a human.
+- Treat the agent like a regulated product: eval gate, pinned versions, canary, automatic rollback, and every failure becomes a test.
+</Takeaways>
+
+<References>
+- [LiveKit Agents](https://docs.livekit.io/agents/) and [Pipecat](https://docs.pipecat.ai/), two open frameworks for self-hosted voice agent workers, for the tier 3 worker model.
+- [Temporal](https://docs.temporal.io/), a durable workflow engine, for the kind of orchestration that replaces low-code in the live path.
+- [RFC 3515, the SIP REFER method](https://www.rfc-editor.org/rfc/rfc3515), which is how the AI leg hands the call to a human and leaves.
+- [FCC: Telephone Consumer Protection Act rules](https://www.fcc.gov/general/telemarketing-and-robocalls), the regulatory floor the compliance gate exists to enforce in the US.
+- [Prompt caching](https://docs.claude.com/en/docs/build-with-claude/prompt-caching), for why a static prefix cuts both cost and time to first token.
+</References>

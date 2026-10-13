@@ -29,6 +29,10 @@ function blogIndex(): Plugin {
         if (!file.endsWith(".mdx")) return
         const mod = server.moduleGraph.getModuleById(RESOLVED_BLOG_INDEX)
         if (mod) server.moduleGraph.invalidateModule(mod)
+        // The post loader's import.meta.glob must see new or removed files too.
+        for (const m of server.moduleGraph.getModulesByFile(path.resolve(__dirname, "src/lib/blog.ts")) ?? []) {
+          server.moduleGraph.invalidateModule(m)
+        }
         server.ws.send({ type: "full-reload" })
       }
       server.watcher.on("add", refresh).on("change", refresh).on("unlink", refresh)
