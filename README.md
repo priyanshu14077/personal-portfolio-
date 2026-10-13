@@ -31,6 +31,10 @@ Inside a post you can use `<Callout>`, `<Figure>`, `<Mermaid>`, `<Steps>`/`<Step
 
 Project case studies are MDX files in `content/case-studies/`, served at `/work/<slug>`. Link one from a project with `caseStudy` in `src/data/projects.ts` or `src/data/field.ts`, and add `project: <slug>` to a post's frontmatter to cross-link them.
 
+## Blog Studio
+
+`npm run studio` starts a local tool for writing and scheduling posts with Claude. See `studio/README.md`.
+
 ## Deployment
 
 `vercel.json` limits automatic deployments to the `master` branch; pushes to other branches do not deploy. Merge to `master` to release.
