@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 import { Link } from "react-router"
 
 import { PostMetaLine } from "@/components/blog/post-meta"
+import { PostThumbnail } from "@/components/blog/post-thumbnail"
 import { CardLabel, CardTitle, FieldCard } from "@/components/portfolio/field-card"
 import { Reveal } from "@/components/portfolio/reveal"
 import type { PostMeta } from "@/lib/blog"
@@ -47,6 +48,7 @@ export function RelatedPosts({ posts, title = "Related posts" }: { posts: PostMe
         {posts.map((p, i) => (
           <Reveal as="li" key={p.slug} delay={i * 80} className="h-full">
             <FieldCard>
+              <PostThumbnail post={p} className="mb-5" />
               <CardLabel>{p.series ?? "Post"}</CardLabel>
               <CardTitle>
                 <Link to={`/blog/${p.slug}`} className="hover:text-accent">

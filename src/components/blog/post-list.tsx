@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react"
 import { Link } from "react-router"
 
 import { PostMetaLine } from "@/components/blog/post-meta"
+import { PostThumbnail } from "@/components/blog/post-thumbnail"
 import { TagList } from "@/components/blog/tag-pill"
 import { CardLabel, FieldCard } from "@/components/portfolio/field-card"
 import { Reveal } from "@/components/portfolio/reveal"
@@ -27,6 +28,7 @@ export function FeaturedPost({ post }: { post: PostMeta }) {
             <p className="mt-5 max-w-[60ch] text-[16px] leading-[1.6] text-ink">{post.summary}</p>
           </div>
           <div className="flex flex-col gap-4 lg:items-end">
+            <PostThumbnail post={post} className="w-full max-w-md lg:max-w-none" />
             <PostMetaLine post={post} />
             <TagList tags={post.tags} className="lg:justify-end" />
             <Link
@@ -45,7 +47,7 @@ export function FeaturedPost({ post }: { post: PostMeta }) {
 function PostRow({ post, index }: { post: PostMeta; index: number }) {
   return (
     <Reveal as="li" delay={(index % 4) * 60}>
-      <article className="grid gap-x-10 gap-y-3 border-t border-dashed border-ink/20 py-7 md:grid-cols-[10rem_1fr]">
+      <article className="grid gap-x-10 gap-y-3 border-t border-dashed border-ink/20 py-7 md:grid-cols-[10rem_minmax(0,1fr)] lg:grid-cols-[10rem_minmax(0,1fr)_15rem]">
         <PostMetaLine post={post} className="flex-col items-start gap-y-1.5 md:pt-1.5" />
         <div>
           {post.series && (
@@ -62,6 +64,7 @@ function PostRow({ post, index }: { post: PostMeta; index: number }) {
           <p className="mt-3 max-w-[65ch] text-[16px] leading-[1.6] text-ink/85">{post.summary}</p>
           <TagList tags={post.tags} className="mt-4" />
         </div>
+        <PostThumbnail post={post} className="mt-2 w-full max-w-md self-start md:col-start-2 lg:col-start-3 lg:row-start-1 lg:mt-1.5 lg:max-w-none" />
       </article>
     </Reveal>
   )

@@ -5,6 +5,7 @@ slug: hybrid-search-in-postgres
 date: 2026-10-08
 tags: [ai, databases, system-design]
 project: proploy
+thumbnail: /blog/hybrid-search-in-postgres/thumbnail.svg
 summary: "Hybrid retrieval for an AI shopping assistant, built entirely in Postgres: full-text search and pgvector side by side, fused with reciprocal rank fusion. What worked, what ts_rank is not, and the subtle bug of feeding a similarity score into a rank-based formula."
 tldr:
   - "When the answer is an entity, embed one card per entity rather than chunking documents. The index stays small and results arrive de-duplicated."

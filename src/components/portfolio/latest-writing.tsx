@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react"
 import { Link } from "react-router"
 
 import { PostMetaLine } from "@/components/blog/post-meta"
+import { PostThumbnail } from "@/components/blog/post-thumbnail"
 import { CardLabel, CardTitle, FieldCard } from "@/components/portfolio/field-card"
 import { Reveal } from "@/components/portfolio/reveal"
 import { SectionHeading } from "@/components/portfolio/section-heading"
@@ -24,6 +25,7 @@ export function LatestWriting() {
           {latest.map((p, i) => (
             <Reveal as="li" key={p.slug} delay={i * 80} className="h-full">
               <FieldCard tone="dark">
+                <PostThumbnail post={p} className="mb-5 border-paper/15" />
                 <CardLabel tone="dark">{p.series ?? "Post"}</CardLabel>
                 <CardTitle tone="dark">
                   <Link to={`/blog/${p.slug}`} className="hover:text-accent">

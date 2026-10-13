@@ -19,6 +19,8 @@ export type PostMeta = {
   /** Used for cards, the meta description and the feed. */
   summary: string
   coverImage?: string
+  /** A small diagram shown on post lists and cards, e.g. /blog/<slug>/thumbnail.svg. */
+  thumbnail?: string
   /** Two to four key points shown at the top of the post. */
   tldr?: string[]
   /** Slug of a case study this post comes from, e.g. "proploy". */
@@ -92,6 +94,7 @@ function readPost(file: string): PostMeta {
     seriesOrder: typeof fm.seriesOrder === "number" ? fm.seriesOrder : undefined,
     summary: String(fm.summary),
     coverImage: fm.coverImage ? String(fm.coverImage) : undefined,
+    thumbnail: fm.thumbnail ? String(fm.thumbnail) : undefined,
     tldr: Array.isArray(fm.tldr) ? fm.tldr.map(String) : undefined,
     project: fm.project ? String(fm.project) : undefined,
     draft: fm.draft === true,

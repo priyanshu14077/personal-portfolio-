@@ -6,6 +6,7 @@ date: 2026-10-06
 tags: [system-design, distributed-systems, databases]
 series: "System Design 101"
 seriesOrder: 1
+thumbnail: /blog/designing-a-url-shortener/thumbnail.svg
 summary: "A URL shortener looks trivial until you ask how to hand out 100 million unique IDs a day without two machines ever agreeing on anything. This is the first post in System Design 101: requirements, estimates, a design, and the trade-offs behind it."
 tldr:
   - "Reads outnumber writes by about 100 to 1, so the whole design is about making the redirect path cheap: a cache in front of a key-value lookup."

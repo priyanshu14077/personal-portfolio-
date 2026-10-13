@@ -5,6 +5,7 @@ slug: streaming-an-agent-through-three-services
 date: 2026-10-10
 tags: [ai, system-design, distributed-systems]
 project: proploy
+thumbnail: /blog/streaming-an-agent-through-three-services/thumbnail.svg
 summary: "An agent turn takes tens of seconds, so it has to stream. Getting it from the model to the browser through a backend-for-frontend, an API gateway and an agent service, without stalls, duplicates or lost replies, touched every layer of the stack. Here is what each hop has to do."
 tldr:
   - "EventSource cannot POST a body, so stream with fetch and a ReadableStream, and keep the partial frame between chunks."

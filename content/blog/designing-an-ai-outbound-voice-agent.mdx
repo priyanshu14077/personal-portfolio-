@@ -4,6 +4,7 @@ subtitle: "Four planes, a 1.2-second turn budget, and an eval gate that every ch
 slug: designing-an-ai-outbound-voice-agent
 date: 2026-10-13
 tags: [system-design, ai, distributed-systems]
+thumbnail: /blog/designing-an-ai-outbound-voice-agent/thumbnail.svg
 summary: "An AI agent that dials consumers, qualifies them in a regulated conversation, and warm-transfers to a human closer. How the architecture is split by latency budget, where the milliseconds go, what the cost levers are, how the agent pool scales from ten closers to a hundred, and why compliance has to be code rather than prompt."
 tldr:
   - "Split the system into planes by latency budget. Only the real-time plane is on the clock during a call; eligibility, pacing, content and analysis all happen before or after."
