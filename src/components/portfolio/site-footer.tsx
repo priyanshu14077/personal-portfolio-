@@ -1,4 +1,5 @@
 import { ArrowUpRight, Mail } from "lucide-react"
+import { Link } from "react-router"
 
 import { TornEdge } from "@/components/portfolio/torn-edge"
 import { resume } from "@/data/resume"
@@ -26,6 +27,9 @@ export function SiteFooter() {
             <Mail className="size-4" aria-hidden="true" /> {resume.email}
           </a>
           <div className="flex gap-4">
+            <Link to="/blog" className="text-sm font-semibold text-ink underline-offset-4 hover:text-accent hover:underline">
+              Blog
+            </Link>
             {resume.links.map((l) => (
               <a
                 key={l.label}

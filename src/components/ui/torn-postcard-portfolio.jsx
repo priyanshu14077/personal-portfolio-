@@ -4036,19 +4036,23 @@ I'd love to hear more about ` +
                 }),
                 t.jsx("div", {
                   className: "tpp-links",
-                  children: x.map((i, l) =>
-                    t.jsx(
-                      "button",
-                      {
-                        type: "button",
-                        className: "tpp-link",
-                        "aria-current": l === Ct,
-                        onClick: () => Z(l),
-                        children: i,
-                      },
-                      i,
+                  children: [
+                    ...x.map((i, l) =>
+                      t.jsx(
+                        "button",
+                        {
+                          type: "button",
+                          className: "tpp-link",
+                          "aria-current": l === Ct,
+                          onClick: () => Z(l),
+                          children: i,
+                        },
+                        i,
+                      ),
                     ),
-                  ),
+                    // Site addition: the blog lives outside the chapters.
+                    t.jsx("a", { className: "tpp-link", href: "/blog", children: "Blog" }, "blog"),
+                  ],
                 }),
                 t.jsxs("div", {
                   className: "flex items-center gap-4",
