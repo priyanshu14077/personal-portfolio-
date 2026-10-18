@@ -3,13 +3,13 @@ title: "Proploy"
 subtitle: "An AI research agent for B2B software procurement: it shortlists real products from a curated catalog, explains the trade-offs, writes an implementation brief, and hands the buyer to a vetted expert."
 slug: proploy
 category: "AI procurement"
-role: "Full-stack engineer and team lead, team of 5"
+role: "Full-stack engineer, one of three engineers on a team of 5"
 period: "Oct 2025 – present"
-summary: "How I led the build of an AI procurement platform: a tool-using Claude agent grounded in a pgvector catalog with hybrid search, streamed live through three services on Cloud Run, with catalog facts kept apart from the model's judgement."
+summary: "How I helped build an AI procurement platform: a tool-using Claude agent grounded in a pgvector catalog with hybrid search, streamed live through three services on Cloud Run, with catalog facts kept apart from the model's judgement."
 facts:
-  - { value: "3d → 15s", label: "research turnaround" }
+  - { value: "3d → 20s", label: "catalog ingestion per product" }
   - { value: "<50ms", label: "catalog search latency" }
-  - { value: "−40%", label: "infrastructure cost" }
+  - { value: "−90%", label: "Cloud Run spend" }
 stack: ["Anthropic SDK", "FastAPI", "Next.js", "Postgres + pgvector", "Cloud Run"]
 link: { label: "Visit proploy.io", href: "https://proploy.io" }
 video:
@@ -17,7 +17,7 @@ video:
   poster: /videos/proploy-launch-poster.jpg
   caption: "Proploy in 30 seconds: from shortlisting software to an implementation brief and a buyer workspace."
 tldr:
-  - "A Claude agent on the native Anthropic SDK that searches a curated software catalog, compares products and writes implementation briefs. Research that took about three days now takes about fifteen seconds."
+  - "A Claude agent on the native Anthropic SDK that searches a curated software catalog, compares products and writes implementation briefs. Adding a product to the catalog took about three days and now takes 15 to 20 seconds."
   - "The gateway owns retrieval and the agent only reasons: the agent reaches the catalog through typed tools over internal HTTP, never through the database."
   - "The catalog decides facts and the model decides judgement. Missing evidence shows as unknown, never as no, so the model cannot invent a certification."
   - "The hardest problem was not the model. It was streaming a long agent turn live through three services without stalls, duplicates or lost replies."
@@ -27,7 +27,7 @@ tldr:
 
 Buying business software is slow, and it runs on opinion. A buyer compares vendor pages, review sites and forum threads for days, and then still has to find someone who can implement the tool they picked. Generic chatbots make this worse. They confidently recommend products that don't fit the brief, and sometimes products that don't exist.
 
-Proploy set out to replace those three days with a research assistant that shortlists **real** products from a curated catalog, explains why each one fits or doesn't, writes an implementation brief the buyer can hand to their team, and introduces them to a vetted expert who has implemented that tool before.
+Proploy set out to replace that research with an assistant that shortlists **real** products from a curated catalog, explains why each one fits or doesn't, writes an implementation brief the buyer can hand to their team, and introduces them to a vetted expert who has implemented that tool before.
 
 Three groups use it:
 
@@ -37,7 +37,7 @@ Three groups use it:
 
 ## My role
 
-I joined in October 2025 as a full-stack engineer and became team lead for a team of five. I owned the agent service end to end, the retrieval layer the agent depends on, the streaming path from the agent to the browser, and the Cloud Run deployment of the Python services. I worked across the Next.js frontend wherever the AI workspace touched it.
+I joined in October 2025 as a full-stack engineer, one of three engineers on a team of five, and I review nearly every pull request. I owned the agent service end to end, the retrieval layer the agent depends on, the streaming path from the agent to the browser, and the Cloud Run deployment of the Python services. I worked across the Next.js frontend wherever the AI workspace touched it.
 
 ## Architecture
 
@@ -183,9 +183,9 @@ sequenceDiagram
 
 ## Results
 
-- Procurement research that took about **three days** now takes about **fifteen seconds**.
+- Catalog ingestion (scraping four sources, structuring and embedding a product) took about **three days** and now takes **15 to 20 seconds** per product.
 - Catalog search answers in **under 50 ms** on tuned Postgres.
-- Moving the services to auto-scaling Cloud Run cut infrastructure cost by about **40 percent**.
+- Cloud Run spend fell by about **90 percent**, from $562 to about $56 a month.
 - Roughly **1,900 automated tests** across the services, with a coverage floor on the two Python services.
 
 ## What I'd do differently
