@@ -5,9 +5,9 @@ import type { LuminaSlide } from "@/components/ui/lumina-interactive-list"
 export const projects: LuminaSlide[] = [
   {
     title: "Proploy",
-    meta: "Full-stack engineer and team lead, 2025 to now",
+    meta: "Full-stack engineer, 2025 to now",
     description:
-      "An AI software and expert marketplace. I led a team of five and built its agents on the native Anthropic SDK, including a RAG agent that cut research from three days to fifteen seconds.",
+      "An AI software and expert marketplace. One of three engineers on a team of five, I built its agents on the native Anthropic SDK and a pipeline that cut catalog ingestion from three days to about twenty seconds per product.",
     media: "/projects/proploy.jpg",
     video: "/videos/proploy-launch.mp4",
     tags: ["Anthropic SDK", "FastAPI", "Next.js", "Cloud Run"],
@@ -16,9 +16,9 @@ export const projects: LuminaSlide[] = [
   },
   {
     title: "Dunne",
-    meta: "Full-stack engineer and team lead, 2025",
+    meta: "Full-stack engineer, sole engineer, 2025",
     description:
-      "A jewellery customisation store. I led a team of six to a platform serving 1,000+ concurrent shoppers at 99.9% uptime, with images loading 85% faster through CloudFront.",
+      "A jewellery customisation store. As the only engineer, I built a platform that has tracked 1,000+ shoppers at 99.99% uptime, with images loading 85% faster through CloudFront.",
     media: "/projects/dunne.jpg",
     tags: ["Next.js", "Nginx", "AWS CloudFront"],
     link: { label: "Visit dunne.co.in", href: "https://dunne.co.in" },
