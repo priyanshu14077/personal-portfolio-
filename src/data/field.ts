@@ -1,13 +1,13 @@
-// Content for the sections below the scroll chapters. Every figure here is from the resume.
+// Content for the sections below the scroll chapters. Every figure here was measured in production.
 
 export type Impact = { value: string; label: string; context: string }
 
 export const impact: Impact[] = [
-  { value: "3d → 15s", label: "Research turnaround", context: "Claude RAG agent at Proploy" },
-  { value: "1,000+", label: "Concurrent users", context: "Customization platform at Dunne" },
-  { value: "99.9%", label: "Uptime", context: "Same platform, in production" },
+  { value: "3d → 20s", label: "Catalog ingestion", context: "Per product, Proploy's agent pipeline" },
+  { value: "1,000+", label: "Shoppers tracked", context: "Customization platform at Dunne" },
+  { value: "99.99%", label: "Uptime", context: "Same platform, over two months" },
   { value: "−85%", label: "Image load time", context: "From 3s+ to under 200ms at Dunne" },
-  { value: "−40%", label: "Infrastructure cost", context: "Auto-scaling Cloud Run at Proploy" },
+  { value: "−90%", label: "Cloud Run spend", context: "$562 → ~$56 a month at Proploy" },
   { value: "<50ms", label: "Search latency", context: "Tuned Supabase Postgres at Proploy" },
 ]
 
@@ -44,17 +44,17 @@ export const caseStudies: CaseStudy[] = [
     kind: "client",
     category: "AI procurement",
     period: "Oct 2025 – present",
-    role: "Full-stack engineer and team lead, team of 5",
-    problem: "Procurement research was manual: about three days of digging for every request.",
+    role: "Full-stack engineer, one of three engineers on a team of 5",
+    problem: "Getting a product into the catalog took about three days of scraping and structuring by hand.",
     built: [
       "Claude-based RAG agent on the native Anthropic SDK",
       "Real-time SSE streaming chat with Redis caching",
       "Supabase Postgres tuned with RLS and GIN indexes, on auto-scaling Cloud Run",
     ],
     facts: [
-      { value: "15s", label: "research, down from 3 days" },
+      { value: "20s", label: "catalog ingestion per product, from 3 days" },
       { value: "<50ms", label: "search latency" },
-      { value: "−40%", label: "infrastructure cost" },
+      { value: "−90%", label: "Cloud Run spend" },
     ],
     stack: ["Anthropic SDK", "FastAPI", "Next.js", "Cloud Run"],
     link: { label: "Visit proploy.io", href: "https://proploy.io" },
@@ -65,16 +65,16 @@ export const caseStudies: CaseStudy[] = [
     kind: "client",
     category: "Jewellery e-commerce",
     period: "Jun 2025 – Jan 2026",
-    role: "Full-stack engineer and team lead, team of 6",
+    role: "Full-stack engineer, sole engineer on a team of 6",
     problem: "A customisation store had to hold up under heavy traffic while product images took 3s+ to load.",
     built: [
-      "Led a team of six from build to launch",
+      "The only engineer, from build to launch",
       "The jewellery customisation platform, end to end",
       "A Next.js, Nginx and AWS CloudFront image pipeline",
     ],
     facts: [
-      { value: "1,000+", label: "concurrent users" },
-      { value: "99.9%", label: "uptime" },
+      { value: "1,000+", label: "shoppers tracked" },
+      { value: "99.99%", label: "uptime over two months" },
       { value: "<200ms", label: "image load, from 3s+" },
     ],
     stack: ["Next.js", "Nginx", "AWS CloudFront", "S3"],
@@ -159,7 +159,7 @@ export const caseStudies: CaseStudy[] = [
       "A pub/sub event bus with no direct coupling between services",
     ],
     facts: [
-      { value: "<800ms", label: "latency target" },
+      { value: "~1.5s", label: "measured response, 1.2s target" },
       { value: "2", label: "languages: Hindi, English" },
       { value: "Live", label: "barge-in mid-sentence" },
     ],
