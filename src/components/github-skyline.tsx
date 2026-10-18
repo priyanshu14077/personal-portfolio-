@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react"
+
 import ContributionSkyline from "@/components/ui/contribution-skyline"
-import contributions from "@/data/contributions.json"
+import snapshot from "@/data/contributions.json"
 import { GITHUB_USER } from "@/data/resume"
 
 // Low → high activity, drawn from the postcard palette: tape blue up to the copper accent and paper white.
@@ -8,7 +10,26 @@ const POSTCARD_PALETTE = {
   dark: ["#2e4468", "#5b7aa0", "#b4673d", "#f2ede2"],
 }
 
+type Contributions = typeof snapshot
+
+/** Starts from the bundled snapshot, then swaps in today's calendar from /api/contributions. */
+function useContributions() {
+  const [data, setData] = useState<Contributions>(snapshot)
+  useEffect(() => {
+    let live = true
+    fetch("/api/contributions")
+      .then((r) => (r.ok ? (r.json() as Promise<Contributions>) : null))
+      .then((d) => live && d?.days?.length && setData(d))
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
+  return data
+}
+
 export function GithubSkyline() {
+  const contributions = useContributions()
   return (
     <section
       id="commits"
