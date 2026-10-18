@@ -21,7 +21,7 @@ npm run build      # production build in dist/
 ## Content
 
 - Scroll-chapter copy lives in `src/data/resume.ts`; the sections below it read from `src/data/field.ts`.
-- GitHub contribution data lives in `src/data/contributions.json`. Refresh it with `npm run contributions` (requires the GitHub CLI, logged in).
+- The GitHub skyline loads live data from `/api/contributions`, a Vercel function in `api/contributions.ts`. It reads the public contributions page on github.com, so it needs no token; set `GITHUB_TOKEN` in Vercel to use the GraphQL API instead. Vercel's CDN caches the answer for 6 hours. `src/data/contributions.json` is the fallback that shows first and stays if the request fails; refresh it with `npm run contributions` (requires the GitHub CLI, logged in).
 
 ## Blog
 
