@@ -22,7 +22,7 @@ export const now: NowItem[] = [
   },
   {
     label: "Working",
-    text: "Leading a team of five at Proploy, shipping agents on the Anthropic SDK. Open to forward deployed roles.",
+    text: "Building agents on the Anthropic SDK at Proploy, one of three engineers. Open to forward deployed roles.",
     link: { label: "The Proploy case study", href: "/work/proploy" },
   },
   {
