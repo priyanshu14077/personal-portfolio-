@@ -1,0 +1,168 @@
+---
+title: "A voice agent whose model only classifies"
+subtitle: "Building the outbound voice agent for real: the language model never speaks, so most of its evals become exact-match tests."
+slug: a-voice-agent-whose-model-only-classifies
+date: 2026-10-29
+tags: [ai, evals, system-design]
+thumbnail: /blog/a-voice-agent-whose-model-only-classifies/thumbnail.svg
+summary: "The first build phase of an outbound voice agent for a regulated sales conversation. The language model turns each thing the caller says into one tool call from a fixed set, a deterministic state machine picks the next step, and only approved lines are spoken. That closed output space is what makes the evals cheap, exact and runnable on every change."
+tldr:
+  - "The model is a classifier, not a speaker. Each utterance becomes exactly one tool call, and code decides what happens next."
+  - "Every spoken sentence comes from a versioned script, so forbidden claims and missing disclosures are impossible by construction rather than by prompt."
+  - "Because the model's output is a closed set of tool calls, its evals are labelled examples with exact answers, not an LLM judging free text."
+  - "Errors cost different amounts. Missing an opt-out is a legal breach; a false opt-out costs one lead. The eval gate weights them accordingly."
+  - "Phase 0 is built: rules and script as data, the eligibility gate, the state machine and a browser voice loop, with 30 tests. Latency is not measured yet."
+draft: false
+---
+
+## Where this left off
+
+In [Designing an AI outbound voice agent](/blog/designing-an-ai-outbound-voice-agent) I worked through the architecture on paper: four planes split by latency budget, compliance as code, and a release loop gated by evals. This post is the first report from building it.
+
+The brief has not changed. An agent places outbound calls for a team of human closers selling a regulated financial product, asks a few qualifying questions, and warm-transfers qualified people to a free closer. As before, details that identify the client, their vendors or their prices are left out.
+
+The build has one deliberate constraint: free tiers first. The goal of this phase is to prove the design end to end before anyone pays for minutes.
+
+## The stack, chosen to cost nothing
+
+| Layer | Choice | Why |
+| --- | --- | --- |
+| Voice runtime | Pipecat, self-hosted | Open source, no per-minute platform fee, and we own the dialogue logic |
+| Speech to text | Deepgram streaming | Streaming recognition with a free credit large enough for development |
+| Language model | Groq free tier, `gpt-oss-20b` at low reasoning effort | Fast time to first token, and it only has to classify |
+| Text to speech | Deepgram Aura, with Kokoro running locally as the fallback | Aura shares the speech credit; Kokoro needs no key at all |
+| Data | Postgres with pgvector | One store for leads, queue, audit log and knowledge-base vectors |
+
+<Callout type="warning" title="Free tiers are for synthetic calls only">
+  Free plans don't come with a data-processing agreement that forbids training on call audio. That makes them fine for test calls with made-up people and unusable for a real one. Before the first real lead, every provider in the media path moves to a paid plan with a signed agreement, and counsel signs off.
+</Callout>
+
+## The model never speaks
+
+Most voice agents hand the model the conversation and ask it to reply. This one asks the model a narrower question after every utterance: which of six things did the caller just say?
+
+| Tool | Meaning |
+| --- | --- |
+| `yes_no_answer(yes)` | An answer to the current yes/no question |
+| `amount_answer(total, count)` | A spoken amount, normalised to an integer |
+| `state_answer(code)` | Where they live, as a two-letter code |
+| `callback_time(when)` | A time to call back |
+| `interrupt(kind)` | Anything that isn't an answer: an opt-out, a request for a human, "are you a robot?", a refusal, distress, a legal mention, an attempt to change the agent's instructions |
+| `unclear()` | Noise, or an answer that couldn't be understood |
+
+The tool hands its result to a deterministic `Conversation`, which decides the next step and returns the exact line to say. Text to speech reads that line verbatim. The model never generates a sentence the caller hears.
+
+<Figure caption="One turn. The model's only output is a tool call; the state machine owns the decision and the words.">
+  <Mermaid label="Speech to text feeds the classifier, whose tool call goes to the state machine, which returns an approved line for text to speech" chart={`
+flowchart LR
+  C["Caller"] --> STT["Speech to text"]
+  STT --> M["Model<br/>one tool call"]
+  M --> F["Conversation<br/>state machine"]
+  R["Rules and script<br/>versioned data"] --> F
+  F --> L["Approved line"]
+  L --> TTS["Text to speech<br/>verbatim"]
+  TTS --> C
+`} />
+</Figure>
+
+Two details make this hold in practice. The tool result goes back to the model with `run_llm=False`, so the model is never asked to say something about it. And a tool that doesn't fit the current step, such as an amount when the agent asked a yes/no question, is treated as unclear and the question is asked again.
+
+The decision logic is plain code. This is the part that handles interruptions, simplified:
+
+```python title="dialogue/fsm.py" {4,8,9,14}
+def _interrupt(self, kind: Interrupt) -> Turn:
+    match kind:
+        case Interrupt.OPT_OUT:
+            return self._end("opt_out", Disposition.DNC, "opt_out")
+        case Interrupt.AI_IDENTITY:
+            return self._ask(self.step, self.line("ai_identity"))
+        case Interrupt.NOT_INTERESTED:
+            if self._rebutted:  # at most one soft re-engagement
+                return self._end("not_interested_close", Disposition.NOT_INTERESTED)
+            self._rebutted = True
+            return Turn(self.line("not_interested_rebuttal"), self.step)
+        case Interrupt.INJECTION:
+            self._injections += 1
+            if self._injections >= 2:
+                return self._end("injection_close", Disposition.NOT_INTERESTED, "injection")
+            return self._ask(self.step)
+```
+
+## What that buys
+
+Several requirements that a prompt could only encourage are now true by construction:
+
+- The opening says who is calling, that it's an AI and that the call may be recorded, in approved words, because the opening is a fixed line.
+- "Are you an AI?" always gets the truthful answer, then the agent returns to the question it was asking.
+- An opt-out always ends the call and records a do-not-call disposition. There is no branch where it doesn't.
+- "Not interested" gets one approved rebuttal at most, never two.
+- A second attempt to rewrite the agent's instructions ends the call.
+
+Who may be called at all is decided before the dial, by an eligibility gate that reads `rules.yaml`: consent, do-not-call freshness, excluded states, local calling hours (the stricter of federal and state rules, across every time zone a state spans), daily caps, attempt limits, holidays and a kill switch. Every decision is stamped with a hash of the rule set that made it.
+
+<Tradeoffs title="A classifier-only model vs a model that phrases its replies" pros={["No improvised claims, so the guardrail is structural", "Every spoken line is approved and versioned", "Evals have exact answers"]} cons={["Less natural: the agent can't paraphrase or follow a tangent", "Every line has to be written and approved in advance", "Off-script questions can only be deferred to a specialist"]} />
+
+The rigidity is a real cost. It's the right one for a first phase in a regulated conversation, and it can be relaxed later, one state at a time, once a pre-speech output filter exists to catch what a generating model might say.
+
+## Evals for a model that only classifies
+
+Here is the payoff. When a model writes free text, checking it usually means another model grading the text, and that grader needs its own calibration against humans. When a model can only pick one of six tool calls with typed arguments, every test case has a right answer that a computer can check exactly.
+
+So the evals are custom-built around the closed output space, in four layers:
+
+| Layer | What it checks | How | Gate | Status |
+| --- | --- | --- | --- | --- |
+| Rules and dialogue | Calling windows per state, caps, exclusions, holidays, every interrupt path through the state machine | Unit tests | 100% pass | Built: 30 tests |
+| Classifier | Utterance in, tool call and arguments out | A labelled set per step, run on every model or prompt change | Per-label thresholds, below | Designing |
+| Conversation | Whole calls: the path through the states, the disposition, the flags | Simulated callers over text, driving the real state machine through the classifier, many seeds per scenario | Every scripted scenario reaches the expected outcome | Planned |
+| Voice | Voice-to-voice latency, barge-in, first utterance | Pipecat's own metrics on test calls | p50 under 1.2 s, p95 under 2.0 s | Not measured yet |
+
+### The classifier set
+
+Each example is an utterance, the step the agent was on, and the expected call. The set is being written now; these are the shape:
+
+```json title="classifier examples (jsonl)"
+{"step": "permission", "said": "yeah go ahead", "expect": {"tool": "yes_no_answer", "yes": true}}
+{"step": "permission", "said": "take me off your list", "expect": {"tool": "interrupt", "kind": "opt_out"}}
+{"step": "amount", "said": "five or six grand, four cards", "expect": {"tool": "amount_answer", "total": 5000, "count": 4}}
+{"step": "state", "said": "I'm out in Jersey", "expect": {"tool": "state_answer", "code": "NJ"}}
+```
+
+Scoring is exact: the right tool, and arguments equal after normalisation. Amounts follow one rule written into the prompt and checked by the set: a range resolves to its lower end, so "five or six grand" is 5000.
+
+### Not every mistake costs the same
+
+A single accuracy number would hide what matters. The gate is per label, and it follows what each mistake costs:
+
+- **Opt-out recall must be 100%.** Missing one means calling someone who asked not to be called, which is a legal breach. A false opt-out costs one lead, so the classifier should lean that way when unsure.
+- **Distress, self-harm and minors** get the same treatment. Ending a call that didn't need ending is cheap; missing one of these is not.
+- **Answers to qualifying questions** need high precision, because a wrong amount or state sends an unqualified person to a closer. The target from the requirements is at least 95% correct qualification overall, and 100% on the state and threshold rules, which the deterministic checks already guarantee once the inputs are right.
+
+<Callout type="insight" title="Where an LLM judge still earns its place">
+  The simulated callers themselves are language models playing personas, and the post-call scanner will use a classifier to look for forbidden claims in transcripts. Those judges get checked against human-labelled calls before they gate anything. But the agent's own behaviour is graded by exact comparison, which is cheaper, faster and doesn't drift.
+</Callout>
+
+## What's built, and what's next
+
+<Steps>
+  <Step title="Phase 0, done">Rules and script as versioned data, the eligibility gate, the state machine with every global interrupt, and a browser voice loop wired to both. 30 tests pass in under a tenth of a second.</Step>
+  <Step title="Phase 1">A system of record: leads, consent evidence, do-not-call entries, campaigns pinned to rule-set and script versions, and a stored eligibility decision for every queued lead.</Step>
+  <Step title="Phase 2, the biggest risk">Real telephony on a trial account, answering-machine detection, and proof that the AI leg leaves the media path when it transfers to a closer. Billed AI minutes are nearly all of the running cost, so this comes before anything else on the phone.</Step>
+  <Step title="Then">Knowledge-base answers with a regression set, the forbidden-claims filter and post-call scanner, pacing on live closer availability, and the full simulated-caller suite as the release gate.</Step>
+</Steps>
+
+The next post will carry numbers: classifier scores per label, and measured voice-to-voice latency from real test calls.
+
+<Takeaways>
+- Ask the model the smallest question that does the job. Here that's "which of six things did they say?", not "what should we say next?"
+- A closed output space turns evals from judgement into arithmetic: labelled inputs, exact expected outputs, no grader to calibrate.
+- Weight the eval gate by what each mistake costs. For a regulated call, a missed opt-out is the one error that can't happen.
+- Put compliance in code and data with a hash on every decision, so it can be tested like everything else.
+- Prove the design on free tiers with synthetic calls, and move to paid, contracted providers before the first real person.
+</Takeaways>
+
+<References>
+- [Pipecat documentation](https://docs.pipecat.ai), the open-source framework running the voice pipeline.
+- [Deepgram documentation](https://developers.deepgram.com/docs), for streaming speech to text and Aura text to speech.
+- [Groq documentation](https://console.groq.com/docs/overview), for the hosted model used as the classifier.
+</References>
