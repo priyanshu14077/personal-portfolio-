@@ -33,6 +33,16 @@ export const projects: LuminaSlide[] = [
     link: { label: "Visit the site", href: "https://emtec-landing-page.vercel.app" },
   },
   {
+    title: "Veridoc",
+    meta: "Independent build, live",
+    description:
+      "Reads a shipment's invoice, packing list and bill of lading with a vision model, checks them against each other with ten rules, and exports nothing until a person clears every doubtful or conflicting value.",
+    media: "/projects/veridoc.jpg",
+    tags: ["FastAPI", "Next.js", "PostgreSQL", "Gemini"],
+    link: { label: "Visit the live demo", href: "https://16-179-13-144.sslip.io" },
+    caseStudy: { label: "Read the write-up", href: "/blog/shipping-an-ai-document-checker-on-one-small-server" },
+  },
+  {
     title: "Tether",
     meta: "Independent build, live",
     description:
