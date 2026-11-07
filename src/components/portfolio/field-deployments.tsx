@@ -115,7 +115,7 @@ function CaseStudyCard({ item, index }: { item: CaseStudy; index: number }) {
           <div className="grid gap-10 lg:grid-cols-[1fr_1.15fr] lg:items-center">
             <div className="flex h-full flex-col">
               <p className="mb-3 inline-flex w-fit items-center gap-2 rounded-full bg-accent/12 px-3 py-1 text-[13px] font-medium text-accent">
-                <span className="size-1.5 rounded-full bg-accent" aria-hidden="true" /> Latest build
+                <span className="size-1.5 rounded-full bg-accent" aria-hidden="true" /> {index === 0 ? "Latest build" : "Live build"}
               </p>
               <CaseStudyBody item={item} />
             </div>
