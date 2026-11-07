@@ -42,7 +42,9 @@ const themeVariables = {
 let ready: Promise<typeof import("mermaid").default> | undefined
 
 function loadMermaid() {
-  ready ??= import("mermaid").then(({ default: mermaid }) => {
+  // Mermaid sizes boxes by measuring text, so measure with Geist loaded or labels get clipped.
+  const fonts = document.fonts.load('18px "Geist"').catch(() => undefined)
+  ready ??= Promise.all([import("mermaid"), fonts]).then(([{ default: mermaid }]) => {
     mermaid.initialize({ startOnLoad: false, theme: "base", themeVariables, securityLevel: "strict" })
     return mermaid
   })
