@@ -101,6 +101,33 @@ export const caseStudies: CaseStudy[] = [
     link: { label: "Visit the site", href: "https://emtec-landing-page.vercel.app" },
   },
   {
+    name: "Veridoc",
+    kind: "independent",
+    category: "AI document extraction",
+    period: "Independent build",
+    role: "Solo build, live on AWS",
+    problem:
+      "A customs broker's team retypes every invoice, packing list and bill of lading by hand, and a typo that slips through means an amended Bill of Entry.",
+    built: [
+      "Vision-model extraction with a confidence score on every field, and each value highlighted on the page it came from",
+      "Ten deterministic cross-checks between the three documents; export stays locked until each conflict is fixed or accepted with a reason",
+      "Five containers on one server, deployed by CI only after the real production stack passes HTTPS smoke tests",
+    ],
+    facts: [
+      { value: "99.8%", label: "of 536 fields read correctly on the sample documents" },
+      { value: "10", label: "cross-check rules across the three documents" },
+      { value: "2 GB", label: "server running the whole app" },
+    ],
+    stack: ["FastAPI", "Next.js", "PostgreSQL", "Gemini"],
+    link: { label: "Visit the live demo", href: "https://16-179-13-144.sslip.io" },
+    caseStudy: "/blog/shipping-an-ai-document-checker-on-one-small-server",
+    featured: true,
+    screenshots: [
+      { src: "/projects/veridoc-app.jpg", alt: "A Veridoc shipment with two conflicts: the container numbers and the invoice number differ between documents, and export is locked until they are cleared" },
+      { src: "/projects/veridoc-review.jpg", alt: "Veridoc's review screen: the packing list PDF with the container number highlighted beside the flagged field and its conflict" },
+    ],
+  },
+  {
     name: "Tether",
     kind: "independent",
     category: "Partner outreach automation",
