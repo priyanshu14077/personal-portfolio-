@@ -1,0 +1,378 @@
+---
+title: "Shipping an AI document checker on one small server"
+subtitle: "Packaging, deploying, securing and observing a customs document app on a 2 GB VM, and the trade-off behind each choice."
+slug: shipping-an-ai-document-checker-on-one-small-server
+date: 2026-11-07
+tags: [devops, system-design, observability]
+thumbnail: /blog/shipping-an-ai-document-checker-on-one-small-server/thumbnail.svg
+summary: "What happened after the features were done: five containers on one 2 GB server, the database doubling as the job queue, a CI job that tests the real production stack, a deliberately boring deploy, and a monitoring stack that was built, measured at 2.5 times the app's memory, and moved off the box."
+tldr:
+  - "Five containers on one VM, with the database as the job queue. The price is no high availability, and that is written down."
+  - "A CI job builds the production stack and checks headers, cookies and origin handling over HTTPS before any deploy."
+  - "Deploys fast-forward to the exact commit CI tested, behind a pinned host key and a health-check wait."
+  - "Monitoring used about 767 MB against the app's 303 MB, so it moved to a local overlay while the instrumentation stayed in the code."
+  - "Trace context stored in the job row lets one trace follow an upload through background extraction."
+draft: false
+---
+
+## Links
+
+- **Live demo:** [16-179-13-144.sslip.io](https://16-179-13-144.sslip.io). It holds fictional documents only. Demo accounts are listed in the [deployment guide](https://github.com/priyanshu14077/veridoc/blob/master/docs/deployment.md).
+- **Source code:** [github.com/priyanshu14077/veridoc](https://github.com/priyanshu14077/veridoc)
+- **CI pipeline:** [the workflow runs](https://github.com/priyanshu14077/veridoc/actions/workflows/ci.yml), including the stack job described below.
+
+## The problem: finishing the features is half the job
+
+The app is a document verification tool for customs teams. A user uploads shipping documents such as invoices, packing lists and bills of lading. An AI model extracts the fields, and the app cross-checks them against each other. Low-confidence fields go to a person for review before anything is exported.
+
+This post starts after the features were done. It covers how the app is packaged, deployed, secured and observed, and the trade-offs behind each choice.
+
+The budget was close to zero. Most decisions came down to doing the reliable thing with very little.
+
+## Requirements and constraints
+
+What the system had to do:
+
+- Be reachable over HTTPS, with a first-party session cookie.
+- Make every deploy tested, repeatable and rebuildable from version control.
+- Survive retries and AI model quota limits during background extraction.
+- Hold fictional demo data only, with the data-residency assumption written down rather than discovered later.
+
+What the budget imposed:
+
+- One VM with 2 vCPU and 2 GB of RAM, and a 30 GB disk.
+- A cloud account that could only open a region in Australia. A real deployment would use Mumbai, so the data stays in India. The deployment guide says so.
+
+## Back-of-the-envelope numbers
+
+On a box this size, memory is the scarce resource. These are measured figures from one run, not a benchmark:
+
+| Group | Containers | Memory |
+| --- | --- | --- |
+| The app | 5 | ~303 MB |
+| Monitoring | 5 | ~767 MB |
+
+Monitoring used about 2.5 times the memory of the app it watched. Together they come to about 1.07 GB of a 2 GB machine, before the operating system and any load spike. That ratio decided the observability design, covered below.
+
+Other numbers that shaped the design:
+
+- **Disk.** A 30 GB disk fills after a few dozen deploys unless old images are pruned.
+- **Request size.** 20 MB is rejected at the proxy. The API enforces its own 15 MB limit behind it.
+- **Queue throughput.** Not a concern at this scale. A relational database handles it easily.
+
+## High-level design
+
+Five containers, declared in one stack file:
+
+- A reverse proxy.
+- A web UI.
+- A REST API.
+- A worker, which runs the same image as the API with a different command.
+- A relational database.
+
+The proxy is the only public entry point. It handles automatic HTTPS, security headers and routing. The database publishes no port, so only containers on the private network can reach it.
+
+<Figure caption="One public entry point. The worker and the API share an image and a database; nothing else is exposed.">
+  <Mermaid label="Architecture: proxy in front, routing to the web UI and API, with the worker and database on a private network" chart={`
+flowchart LR
+  U["Browser"] -->|"HTTPS"| P["Reverse proxy<br/>TLS, headers, 20 MB cap"]
+  P -->|"/"| W["Web UI"]
+  P -->|"/api/#42;"| A["REST API"]
+  A --> D["Relational database<br/>data + job queue"]
+  K["Worker<br/>same image as API"] --> D
+  K --> M["AI model API"]
+`} />
+</Figure>
+
+## Deep dives
+
+Seven decisions carry most of the weight. Each one has a cost, and I have tried to state it.
+
+### One origin for everything
+
+The proxy serves the UI at `/` and the API at `/api/*` on the same domain. The session cookie is first-party, and there is no cross-origin setup to get wrong. That removes a whole class of cookie and CORS bugs.
+
+<Tradeoffs
+  title="Single origin"
+  pros={[
+    "First-party cookies with no cross-origin configuration",
+    "One place to set headers, size limits and TLS",
+  ]}
+  cons={[
+    "The proxy and its routing rules become the one thing you must get right",
+  ]}
+/>
+
+### The database is also the job queue
+
+An upload inserts a document row and a job row in the same transaction. You never get a document without its job, or a job without its document.
+
+The worker claims jobs with `SELECT … FOR UPDATE SKIP LOCKED`. Concurrent workers skip rows another worker has locked, so no job is claimed twice. Here is the shape of it. Only `run_after` comes from the real schema; the other names are illustrative.
+
+```sql title="claim-job.sql" {5}
+SELECT id
+  FROM jobs
+ WHERE status = 'queued'
+   AND run_after <= now()
+ ORDER BY run_after
+ LIMIT 1
+   FOR UPDATE SKIP LOCKED;
+```
+
+Retries, back-off and "wait until the AI model quota resets" are all the same thing: push `run_after` into the future. There is no separate scheduler.
+
+<Tradeoffs
+  title="Database as queue vs a dedicated broker"
+  pros={[
+    "No extra service to run, secure or fit into 2 GB of RAM",
+    "Job and document are created atomically in one transaction",
+    "Retries and quota waits are one column",
+  ]}
+  cons={[
+    "A weaker queue than a dedicated broker at thousands of jobs per second. That is a problem I would be happy to have",
+  ]}
+/>
+
+### One server instead of a managed cluster
+
+A managed cluster would cost more each month than the whole demo. It would also add a control plane that I would have to secure and explain.
+
+The stack file still gives me declared services, health checks, restart policies and named volumes. The setup can be rebuilt from version control.
+
+<Tradeoffs
+  title="One VM vs a managed cluster"
+  pros={[
+    "Cost stays near zero",
+    "Nothing to operate beyond the VM and the stack file",
+  ]}
+  cons={[
+    "No high availability. If the instance dies, the app is down until it is restarted",
+  ]}
+/>
+
+For a demo with fictional data that is acceptable. I documented it rather than hiding it.
+
+### CI/CD: test the real stack, then deploy it
+
+Four jobs run on every push.
+
+1. **api.** Lint, then 158 tests against a real database.
+2. **web.** Lint, type check and a production build.
+3. **stack.** The important one. It builds the production stack file on a fresh runner and starts it with `--wait`, so every health check must pass. It then smoke-tests through the proxy over HTTPS.
+4. **deploy.** Runs only on the main branch, and only after the other three pass.
+
+The stack job's smoke tests check four things:
+
+- An unauthenticated request gets 401.
+- The demo login sets a cookie marked `Secure`.
+- The HSTS header is present.
+- A cross-site POST with a foreign `Origin` header is rejected with 403.
+
+<Figure caption="Deploy is gated on three jobs. The stack job is the one that exercises the real production configuration.">
+  <Mermaid label="CI/CD pipeline: three parallel jobs gate a deploy, which ends with a live smoke test" chart={`
+flowchart LR
+  Push["Push"] --> API["api job<br/>lint + 158 tests"]
+  Push --> WEB["web job<br/>lint, types, build"]
+  Push --> STK["stack job<br/>prod stack + HTTPS smoke tests"]
+  API --> DEP["deploy<br/>main branch only"]
+  WEB --> DEP
+  STK --> DEP
+  DEP --> SRV["Server<br/>fetch, ff-only merge, up --wait"]
+  SRV --> LIVE["Live smoke test"]
+`} />
+</Figure>
+
+Unit tests tell you the code is right. The stack job tells you the configuration is right: headers, cookies, routing and health checks. Those are the things that break on deploy day.
+
+### A deliberately boring deploy
+
+The deploy job does as little as possible, and each step exists to make a failure loud.
+
+<Steps>
+  <Step title="Connect with a pinned host key">
+    The job uses a key held in the CI secret store. The server's host key is pinned in a secret too, with strict host key checking on. A spoofed server makes the job fail instead of receiving the deploy.
+  </Step>
+  <Step title="Fast-forward to the tested commit">
+    The deploy script, piped over the connection, runs a fetch and then a fast-forward-only merge of the exact commit CI tested. If someone hand-edited files on the server, the merge stops instead of silently overwriting them.
+  </Step>
+  <Step title="Bring the stack up and wait">
+    The stack is rebuilt and started with `--wait` and a 300 second timeout. If the new containers do not become healthy, the job fails and shows red.
+  </Step>
+  <Step title="Prune old images">
+    Without this, the 30 GB disk fills after a few dozen deploys.
+  </Step>
+  <Step title="Smoke-test the live site">
+    Health, the login page and a real demo login.
+  </Step>
+</Steps>
+
+A concurrency group stops two deploys overlapping. It is set never to cancel a running deploy, so a build is never killed halfway through.
+
+### Building on the server and rolling back
+
+Images are built on the server itself, not pushed to a registry. That is slower and uses the server's CPU during a deploy. It also means I do not have to run and secure a registry.
+
+Rollback today is reverting the commit and merging it. That redeploys the previous code through the same pipeline. It is slower than switching to an older image, but it is the path every deploy takes, so it is tested on every deploy.
+
+With a registry the flow would be: build once in CI, scan the image, push it, and deploy by digest. That gives fast rollback and a guarantee that the tested image is byte-for-byte the running image. It is at the top of my list.
+
+### Security as a list of testable choices
+
+I treated security as specific choices that can be checked, and CI checks several of them on every push.
+
+**Network**
+
+- Only the web ports and SSH are open. The database publishes no port.
+- SSH is open to any address, but key-only. That is a deliberate trade-off. CI runners use changing IP ranges, so an allowlist would break deploys. The better fix is to remove the inbound admin port entirely. It is on the list below.
+
+**Transport and browser**
+
+- Certificates are issued and renewed automatically by the proxy.
+- Responses carry HSTS, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and a strict referrer policy. The `Server` header is removed.
+- Cookies are `HttpOnly`, `Secure` and first-party.
+- State-changing requests check `Origin`, and CI proves a foreign origin gets 403.
+- Size limits sit at two layers. The proxy rejects bodies over 20 MB before they reach the app, and the API enforces its own lower 15 MB limit.
+
+**Secrets**
+
+- No secret is in version control. Real values live only in an env file on the server. The repository holds a names-only example file.
+- The deploy script never prints secret values, because CI logs are visible to anyone with repository access.
+- CI generates throwaway random passwords for every test stack.
+- With more time I would inject secrets at start from a managed secret store.
+
+**Data**
+
+- The demo holds fictional documents only. The AI provider's free tier may use inputs for training. Real customs documents would need a paid tier or another provider. That is a written assumption, not a surprise waiting for later.
+
+### Observability: built, measured, then kept out of production
+
+This was the most interesting trade-off in the project.
+
+**Instrumentation in the code**
+
+- The API and worker use a vendor-neutral tracing SDK. There is a span per request, per SQL statement and per AI model call, with model and token counts.
+- The web UI is instrumented too. The proxy starts the trace and passes a standard trace-context header downstream.
+- When an upload queues a job, the trace context is stored in the job row. The worker picks it up and continues the same trace.
+
+<Callout type="insight" title="Traces across the queue">
+  Most setups lose the trace at the queue boundary, because the producer and consumer never share a call stack. Storing the context in the job row costs one column. In return, one trace shows a user's upload all the way through background extraction.
+</Callout>
+
+**Custom metrics for what matters to this product**
+
+- AI model calls by model and outcome, such as ok, quota, overloaded or bad schema.
+- Queue depth and the age of the oldest waiting job.
+- Extraction outcomes.
+- A histogram of field confidence, which shows what share of fields need a human.
+
+Logs are structured JSON with a `trace_id` on every line, so a log line links to its trace.
+
+**Dashboards and alerts**
+
+A dashboard and 8 alert rules are provisioned from files in version control. The rules cover:
+
+- a silent service
+- 5xx rate
+- a stuck queue
+- model quota
+- model failures
+- disk
+- memory
+
+I tested the "worker stopped reporting" alert for real by stopping the worker. It went pending after about 6 minutes and fired after about 9, which matches the rule.
+
+### Choosing the monitoring stores
+
+The hosted free plans I looked at either asked for a card or were trial-only. That left self-hosting, and memory was the constraint.
+
+I chose stores that are each a single small binary, with retention and disk caps as flags. The dashboard talks to them through standard query APIs, so the dashboard does not care which store sits behind it.
+
+My first choice for traces served only a newer query API than the dashboard's data source called. Every query returned 404. I switched to a store that speaks the older API.
+
+<Tradeoffs
+  title="The replacement trace store"
+  pros={[
+    "Works with the dashboard's existing data source",
+    "Small footprint, with caps set by flags",
+  ]}
+  cons={[
+    "It is pre-1.0, so I pinned it to an exact version",
+  ]}
+/>
+
+### Measuring it and moving it out
+
+I wrote a small report generator. It reads the metrics store and prints a Markdown summary of traffic, latency per route, and memory per container, split into app and monitoring. That produced the 303 MB against 767 MB comparison from earlier.
+
+On a 2 GB server, that would leave the database and API with little headroom under load. Self-hosted monitoring on the same box has a second, more basic flaw. If the server dies, the monitoring dies with it and cannot send the alert.
+
+So monitoring became a local overlay file that runs on my laptop, layered on top of the unchanged production file.
+
+The point is not that monitoring is optional. I built the full stack, measured what it costs, and kept it out of production because the numbers did not justify it at this scale. The overlay makes that decision cheap to reverse.
+
+## Scaling and failure
+
+**What production keeps**
+
+- JSON logs.
+- Log rotation, at 10 MB by 3 files per container, so logs cannot fill the disk.
+- Health checks.
+- CI smoke tests.
+
+**What is switched off**
+
+The instrumentation stays in the code. Setting one environment variable that points at a collector endpoint turns it on, with no code change.
+
+**What CI guards**
+
+- The production file contains only the five app services.
+- The overlay works: CI starts it and proves that metrics, logs and traces all arrive.
+- A fresh report is uploaded as a build artefact.
+
+**Failure modes**
+
+- A dead instance means downtime until it is restarted.
+- There is no outside uptime check yet, so a dead server does not alert anyone.
+- A bad deploy fails the health-check wait. If a bad change gets through, it is reverted through the same pipeline.
+
+**Scaling path**
+
+Once there is real data and real users, move to a managed database and two app instances behind a load balancer. The five-container split already makes that a configuration change, not a rewrite.
+
+## Things that broke
+
+- **A `%` in a SQL comment crashed a migration.** The database driver treats `%` as a query placeholder, even inside comments. I rewrote the migration to avoid it. Lesson: test migrations through the same driver production uses.
+- **The ORM's tracing package did not support the new ORM version.** Forcing it crashed the API at start. The new JSON logs made the cause obvious. The fix was to trace at the database-driver level instead.
+- **Editing a mounted config file does not restart its container.** The collector and dashboard kept running stale config. I now hash the config folder into an environment variable, so a config change forces recreation of exactly those containers.
+- **Snap packages mount as read-only disks that always show 100% full.** The disk alert would have fired forever. I filter by filesystem type.
+- **CI flakiness.** The dashboard reported healthy before its plugin finished downloading. The health check now requires the plugin file, and the plugin version is pinned.
+- **A rebrand without data loss.** Renaming the stack project or the database user would have created new, empty volumes. Renaming the database user would also have been silently ignored, because the database only reads its user and name settings when it first creates its data. So internal names stayed as they were. A migration moved the demo emails to the new domain, and the seed script resyncs the demo password. User-facing names changed; anything holding data did not.
+
+## What I would do differently
+
+In order:
+
+1. **A registry and immutable deploys.** Build once in CI, scan, push, and deploy by digest. That brings one-command rollback and ends building on production.
+2. **Remove the inbound admin port.** Deploy through a cloud session manager with short-lived federated credentials and a narrowly scoped role. No long-lived key would sit in CI.
+3. **Infrastructure as code.** Define the instance, firewall, static IP and permissions in code. Today the server is documented by hand. It should be recreatable with one command.
+4. **Backups that are actually tested.** A nightly database dump and the uploads volume go to object storage with a lifecycle policy, plus a scheduled restore test. A backup you have never restored is not a backup yet.
+5. **Production monitoring done properly.** Keep only the collector on the app server. Send data to a separate small box or a hosted backend, and add an outside uptime check so a dead server still alerts someone.
+6. **Service-level objectives.** For example, 99% of extractions finish within 2 minutes, with burn-rate alerts instead of fixed thresholds.
+7. **A managed database and two app instances** behind a load balancer, once there is real data and real users.
+
+None of these pieces is exotic. The work was in the choices. Each has a documented trade-off and a clear next step when the app grows.
+
+<Takeaways>
+- On a small box, a database doubling as the job queue and one stack file are enough. The price is no high availability, so write that down.
+- Test the production configuration in CI, not just the code. A job that builds the real stack and checks headers, cookies and origin handling catches what unit tests cannot.
+- Deploy exactly the commit CI tested, with a fast-forward-only merge, a pinned host key and a health-check wait. Make every failure loud.
+- Measure your monitoring. Here it used about 2.5 times the memory of the app, so it moved to a local overlay while the instrumentation stayed in the code.
+- Carry trace context in the job row, and the trace survives the queue.
+- Keep identifiers that hold data stable during a rebrand. Change only the user-facing names.
+</Takeaways>
+
+<References>
+- [RFC 6797: HTTP Strict Transport Security](https://www.rfc-editor.org/rfc/rfc6797), the specification behind the HSTS header that CI checks on every push.
+- [W3C Trace Context](https://www.w3.org/TR/trace-context/), the standard header format that lets a trace continue across services, and across a queue when you store it in the job row.
+- [Veridoc on GitHub](https://github.com/priyanshu14077/veridoc), the source code, stack files and CI workflow behind everything in this post.
+</References>
