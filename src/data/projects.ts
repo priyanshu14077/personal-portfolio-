@@ -52,6 +52,16 @@ export const projects: LuminaSlide[] = [
     link: { label: "Visit the live site", href: "https://site-two-pi-85.vercel.app/" },
   },
   {
+    title: "Orqen",
+    meta: "Independent build, in progress",
+    description:
+      "An online judge for AI agents, like Codeforces but for prompts and agent code. Redis Streams fan each submission out to its tests, Postgres decides when the last result is in, and the score streams back to the browser live.",
+    media: "/projects/orqen.jpg",
+    tags: ["FastAPI", "Redis Streams", "PostgreSQL", "Next.js"],
+    link: { label: "View on GitHub", href: "https://github.com/priyanshu14077/orqen" },
+    caption: "Illustration",
+  },
+  {
     title: "Bidwright",
     meta: "Independent build",
     description:
