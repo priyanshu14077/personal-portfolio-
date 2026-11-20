@@ -58,6 +58,28 @@ export const resume = {
       scene: "dawn",
     },
     {
+      name: "Veridoc",
+      year: "2026",
+      role: "Live build · AI document checks",
+      description:
+        "Reads a shipment's invoice, packing list and bill of lading with a vision model, then runs ten cross-checks between them. Every doubtful or conflicting value goes to a person, and export stays locked until each one is cleared. Runs on one 2 GB server, deployed by CI after HTTPS smoke tests.",
+      tags: ["FastAPI", "Next.js", "PostgreSQL", "Gemini"],
+      url: "https://16-179-13-144.sslip.io",
+      note: "536 fields, 535 read right",
+      scene: "lake",
+    },
+    {
+      name: "Orqen",
+      year: "2026",
+      role: "In progress · distributed systems",
+      description:
+        "An online judge for AI agents. A gateway, orchestrator, executor, grader and metering LLM proxy pass work over Redis Streams, Postgres decides when every test is in, and results stream back over SSE. An integration test kills the executor mid-run and the submission still scores.",
+      tags: ["FastAPI", "Redis Streams", "PostgreSQL", "Next.js"],
+      url: `https://github.com/${GITHUB_USER}/orqen`,
+      note: "Codeforces, but for agents",
+      scene: "forest",
+    },
+    {
       name: "Flowforge",
       year: "2025",
       role: "Prototype · AI workflows",
