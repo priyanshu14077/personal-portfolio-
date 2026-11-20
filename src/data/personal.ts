@@ -1,6 +1,6 @@
 // The /now and /uses pages. Edit these lists; the pages render whatever is here.
 
-export const NOW_UPDATED = "2026-10-13"
+export const NOW_UPDATED = "2026-11-20"
 
 export type NowItem = { label: string; text: string; link?: { label: string; href: string } }
 
@@ -9,7 +9,8 @@ export const LEETCODE_75 = "https://leetcode.com/studyplan/leetcode-75/"
 export const now: NowItem[] = [
   {
     label: "Building",
-    text: "Blog Studio, a local AI campaign manager that takes my posts from idea to commit. I'm adding GitHub sign-in to it.",
+    text: "Orqen, an online judge for AI agents. Submissions already run end to end on a fake model; next come the real Claude backend and a Docker sandbox for every test.",
+    link: { label: "Follow it on GitHub", href: "https://github.com/priyanshu14077/orqen" },
   },
   {
     label: "Learning",

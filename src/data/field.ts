@@ -154,6 +154,27 @@ export const caseStudies: CaseStudy[] = [
     ],
   },
   {
+    name: "Orqen",
+    kind: "independent",
+    category: "Distributed systems",
+    period: "Independent build, in progress",
+    role: "Solo build",
+    problem:
+      "Judging an AI agent means running many tests at once, metering every model call, and still scoring fairly when a worker dies.",
+    built: [
+      "Five services on Redis Streams, with stuck work reclaimed and bad messages dead-lettered",
+      "Postgres, not Redis, decides when the last test result is in",
+      "A metering LLM proxy that speaks the Anthropic Messages API",
+    ],
+    facts: [
+      { value: "5", label: "services in the judging pipeline" },
+      { value: "kill -9", label: "mid-run, no test lost" },
+      { value: "RLS", label: "on every table, hidden tests stay hidden" },
+    ],
+    stack: ["FastAPI", "Redis Streams", "PostgreSQL", "Next.js"],
+    link: { label: "View on GitHub", href: `${GH}/orqen` },
+  },
+  {
     name: "Bidwright",
     kind: "independent",
     category: "AI document extraction",
